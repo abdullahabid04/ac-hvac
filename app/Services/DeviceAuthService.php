@@ -31,6 +31,23 @@ class DeviceAuthService
             ->first();
     }
 
+    /**
+     * Authenticate a device by its serial number (temporary/demo only).
+     *
+     * Serial number is an identifier, NOT a cryptographic secret. This method
+     * is provided ONLY as a temporary demonstration mechanism and must NOT be
+     * considered production-grade authentication. Software cannot physically
+     * block a handheld remote's direct IR beam.
+     *
+     * @return Device|null Returns the device if found and active, null otherwise.
+     */
+    public function authenticateBySerialNumber(string $serialNumber): ?Device
+    {
+        return Device::where('serial_number', $serialNumber)
+            ->where('status', 'active')
+            ->first();
+    }
+
     public function revoke(Device $device): void
     {
         $device->update([

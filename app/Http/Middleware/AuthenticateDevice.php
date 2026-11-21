@@ -13,22 +13,32 @@ class AuthenticateDevice
 
     public function handle(Request $request, Closure $next): Response
     {
+        // Try bearer token authentication first
         $token = $request->bearerToken();
         $device = $this->auth->authenticate($token);
 
-        if (! $device) {
-            return response()->json([
-                'error' => [
-                    'code' => 'DEVICE_UNAUTHENTICATED',
-                    'message' => 'A valid device bearer token is required.',
-                    'details' => [],
-                    'request_id' => $request->attributes->get('request_id'),
-                ],
-            ], 401);
+        if ($device) {
+            $request->attributes->set('device', $device);
+            return $next($request);
         }
 
-        $request->attributes->set('device', $device);
+        // Fall back to serial-number-based authentication (temporary/demo only)
+        $serialNumber = $request->header('X-Device-Serial');
+        if ($serialNumber) {
+            $device = $this->auth->authenticateBySerialNumber($serialNumber);
+            if ($device) {
+                $request->attributes->set('device', $device);
+                return $next($request);
+            }
+        }
 
-        return $next($request);
+        return response()->json([
+            'error' => [
+                'code' => 'DEVICE_UNAUTHENTICATED',
+                'message' => 'A valid device bearer token or device serial is required.',
+                'details' => [],
+                'request_id' => $request->attributes->get('request_id'),
+            ],
+        ], 401);
     }
 }

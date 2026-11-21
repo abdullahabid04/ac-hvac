@@ -16,6 +16,8 @@ class Device extends Model
     protected $fillable = [
         'organization_id',
         'device_uid',
+        'serial_number',
+        'command_representation',
         'name',
         'hardware_model',
         'firmware_version',

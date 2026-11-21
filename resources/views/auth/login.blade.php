@@ -15,37 +15,43 @@
                 radial-gradient(500px 300px at 95% 95%, rgba(63,180,255,.18), transparent 65%);"></div>
             <div class="relative">
                 <div class="flex items-center gap-3">
-                    <span class="brand-mark"><x-icon name="snowflake" :size="22" /></span>
+                    <span class="brand-mark">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                            <path d="M2 17l10-5 10 5-10 5z"/>
+                            <circle cx="12" cy="9" r="2"/>
+                        </svg>
+                    </span>
                     <div>
-                        <p class="text-[14px] font-semibold">AC Management Portal</p>
-                        <p class="text-[10px] uppercase tracking-[0.16em] text-[#8fb6d8]">Centralized HVAC operations</p>
+                        <p class="text-[14px] font-semibold">GIFT University</p>
+                        <p class="text-[10px] uppercase tracking-[0.16em] text-[#8fb6d8]">Converting Knowledge into Practical Experience</p>
                     </div>
                 </div>
 
                 <div class="mt-24 max-w-md">
-                    <p class="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#7dc4f7]">Organization manager console</p>
+                    <p class="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#7dc4f7]">Organization Manager Console</p>
                     <h1 class="mt-4 text-[38px] font-bold leading-[1.08] tracking-[-0.035em]">Every air conditioner.<br>One clear operating picture.</h1>
                     <p class="mt-5 text-[13.5px] leading-relaxed text-[#a9c7e1]">
                         Monitor reported AC state, device connectivity and operating duration across your portfolio — without confusing last-known state with physical confirmation.
                     </p>
                 </div>
-            </div>
 
-            <div class="relative grid grid-cols-3 gap-3 text-[11px]">
-                <div class="rounded-xl border border-white/10 bg-white/5 p-3.5">
-                    <x-icon name="shield" :size="18" class="text-[#7dc4f7]" />
-                    <p class="mt-2 font-semibold text-white">Policy-aware</p>
-                    <p class="mt-0.5 text-[#8fb6d8]">Nearest explicit remote policy wins.</p>
-                </div>
-                <div class="rounded-xl border border-white/10 bg-white/5 p-3.5">
-                    <x-icon name="activity" :size="18" class="text-[#7dc4f7]" />
-                    <p class="mt-2 font-semibold text-white">Fact separation</p>
-                    <p class="mt-0.5 text-[#8fb6d8]">Request, receipt, transmission, state.</p>
-                </div>
-                <div class="rounded-xl border border-white/10 bg-white/5 p-3.5">
-                    <x-icon name="clock" :size="18" class="text-[#7dc4f7]" />
-                    <p class="mt-2 font-semibold text-white">ON duration</p>
-                    <p class="mt-0.5 text-[#8fb6d8]">Operating hours, never kWh.</p>
+                <div class="relative grid grid-cols-3 gap-3 text-[11px]">
+                    <div class="rounded-xl border border-white/10 bg-white/5 p-3.5">
+                        <x-icon name="shield" :size="18" class="text-[#7dc4f7]" />
+                        <p class="mt-2 font-semibold text-white">Policy-aware</p>
+                        <p class="mt-0.5 text-[#8fb6d8]">Nearest explicit remote policy wins.</p>
+                    </div>
+                    <div class="rounded-xl border border-white/10 bg-white/5 p-3.5">
+                        <x-icon name="activity" :size="18" class="text-[#7dc4f7]" />
+                        <p class="mt-2 font-semibold text-white">Fact separation</p>
+                        <p class="mt-0.5 text-[#8fb6d8]">Request, receipt, transmission, state.</p>
+                    </div>
+                    <div class="rounded-xl border border-white/10 bg-white/5 p-3.5">
+                        <x-icon name="clock" :size="18" class="text-[#7dc4f7]" />
+                        <p class="mt-2 font-semibold text-white">ON duration</p>
+                        <p class="mt-0.5 text-[#8fb6d8]">Operating hours, never kWh.</p>
+                    </div>
                 </div>
             </div>
         </section>
@@ -53,10 +59,16 @@
         <section class="flex items-center justify-center px-5 py-10 sm:px-8">
             <div class="w-full max-w-[400px]">
                 <div class="mb-8 flex items-center gap-3 lg:hidden">
-                    <span class="brand-mark"><x-icon name="snowflake" :size="22" /></span>
+                    <span class="brand-mark">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                            <path d="M2 17l10-5 10 5-10 5z"/>
+                            <circle cx="12" cy="9" r="2"/>
+                        </svg>
+                    </span>
                     <div>
-                        <p class="text-[14px] font-semibold text-ink">AC Management Portal</p>
-                        <p class="text-[10px] uppercase tracking-[0.14em] text-muted">Manager console</p>
+                        <p class="text-[14px] font-semibold text-ink">GIFT University</p>
+                        <p class="text-[10px] uppercase tracking-[0.14em] text-muted">Facilities Management Portal</p>
                     </div>
                 </div>
 
@@ -75,7 +87,7 @@
                         @csrf
                         <div>
                             <label for="email" class="label">Email address</label>
-                            <input id="email" name="email" type="email" value="{{ old('email', 'admin@northwind.test') }}" class="input" autocomplete="username" required autofocus>
+                            <input id="email" name="email" type="email" value="{{ old('email', 'admin@gift.edu.pk') }}" class="input" autocomplete="username" required autofocus>
                         </div>
                         <div>
                             <label for="password" class="label">Password</label>
@@ -91,7 +103,7 @@
 
                     <div class="mt-6 rounded-xl border border-line bg-blue-50/60 p-3.5">
                         <p class="flex items-center gap-1.5 text-[10.5px] font-semibold uppercase tracking-[0.08em] text-blue-700">
-                            <x-icon name="info" :size="13" /> Development workspace
+                            <x-icon name="info" :size="13" /> Development simulator
                         </p>
                         <p class="mt-1 text-[11.5px] leading-relaxed text-ink-soft">
                             Demo credentials are pre-filled. Seed data and simulator events are explicitly sample data and are not hardware validation.
@@ -100,7 +112,7 @@
                 </div>
 
                 <p class="mt-5 text-center text-[10.5px] text-muted">
-                    {{ $shellOrganization?->name ?? 'Organization-scoped access' }} · Tenant data is isolated server-side.
+                    GIFT University · Gujranwala, Punjab, Pakistan · Tenant data is isolated server-side.
                 </p>
             </div>
         </section>
