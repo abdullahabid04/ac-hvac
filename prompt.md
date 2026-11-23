@@ -1,1266 +1,958 @@
-# Focused Implementation Tasks — GIFT University Demo, Device Identity, Command API & IoT Simulator
+# Master Engineering Task: Verify, Complete & Integrate the HVAC IoT Device Workflow
 
-## 0. Overall Objective
+## 1. Project Context
 
-You are working on the existing **Centralized IoT HVAC / AC Management Platform**.
+We are developing a Centralized AC/HVAC Management Platform.
 
-I need you to implement the following four focused workstreams:
+The system consists of:
 
-1. GIFT University branding on the existing login page.
-2. GIFT University demo organization, admin account, hierarchy, AC inventory, and database seeders.
-3. A consistent device serial-number generation and validation mechanism, along with improvements to the device command API response.
-4. A reusable, continuously running Python IoT device simulator with a simple visual monitoring interface.
+1. **Laravel Backend:** Laravel 12, PHP 8.2, MySQL.
+2. **Manager Dashboard:** A web-based HVAC management dashboard.
+3. **IoT Devices:** ESP32-based devices that communicate with the Laravel backend.
+4. **Python Simulator:** A software-based IoT device simulator that behaves like the actual ESP32 device and communicates with the real backend.
 
-After all four workstreams are implemented, perform comprehensive testing of the existing web application, backend APIs, database integration, and Python simulator.
+Production dashboard:
 
-**This is a focused improvement task, not a redesign or rewrite of the platform.**
+`https://hvac.cosmosalgos.com`
 
-The existing application is already developed. Preserve its architecture, existing functionality, visual direction, API conventions, database relationships, and working components.
-
-The most important instruction:
-
-**Fix what is necessary. Do not break what is already working. Do not introduce unrelated changes.**
-
----
-
-# 1. CONTEXT DISCOVERY — READ BEFORE IMPLEMENTING
-
-You already have access to the existing project repository and its documentation.
-
-Do not ask me to provide the project context again.
-
-Start by discovering and inspecting the existing project.
-
-## 1.1 Main Laravel application
-
-Identify the current repository root and inspect:
-
-- Laravel/PHP version.
-- Frontend framework and build system.
-- Authentication implementation.
-- User, organization, membership, and role models.
-- Database migrations and relationships.
-- Existing factories and seeders.
-- AC, location, and device models.
-- Device registration and assignment mechanisms.
-- Existing device API routes.
-- Command creation, retrieval, acknowledgement, and reporting workflows.
-- Existing API request/response structures.
-- Authorization and tenant-isolation mechanisms.
-- Existing automated tests.
-
-Inspect actual code rather than assuming that the conceptual documentation describes the current implementation exactly.
-
-## 1.2 Project documentation
-
-Find and read the existing project documentation, especially:
-
-1. Documentation index.
-2. Project Proposal.
-3. Software Requirements Specification.
-4. Software Design Description.
-5. Implementation Guide.
-6. Backend Implementation Guide.
-7. API Contract Guidelines.
-8. Database Design Proposal.
-9. Device and IoT Integration Guide.
-10. Testing, Deployment and Operations Guide.
-11. Variant 7 Theme Book and relevant UI specifications.
-
-Also inspect the existing `project-reference` directory and any other relevant project-reference files.
-
-Use the existing coding-agent context and these documents as the source of truth.
-
-Priority:
-
-1. Latest explicit client decisions.
-2. Confirmed SRS requirements.
-3. SDD and domain rules.
-4. Approved UI specifications.
-5. Engineering documentation.
-6. Existing repository conventions.
-
-Where documentation and implementation disagree, investigate and document the discrepancy. Do not blindly replace working implementation with a conceptual example.
-
-## 1.3 Python simulator project
-
-The existing Python testing project is expected at:
+Python simulator project:
 
 `D:\Projects\pythonProjects\ACHVAC_IoT_Testing`
 
-Inspect this exact path.
+The Laravel backend and its device APIs have already been developed. The Python simulator also exists.
 
-If the directory does not exist, search the specified parent directory and the existing OpenCode workspace for the project or its earlier implementation.
+This task is about inspecting, completing, integrating, and thoroughly verifying the existing implementation.
 
-I have already provided this path and the simulator requirements in the earlier project context.
-
-There are two other Python projects in the parent directory. **Do not modify, rename, move, or interfere with either of them.**
-
-The Python project must communicate with the existing Laravel application. It must not create a duplicate backend or a replacement Flask API.
-
-If the simulator project does not exist, create it at the specified path.
+**Do not rebuild the project from scratch. Do not introduce unnecessary architectural changes. Work with the existing implementation and preserve established conventions.**
 
 ---
 
-# 2. TASK ONE — GIFT UNIVERSITY LOGIN PAGE BRANDING
+# 2. Primary Objectives
 
-## Objective
+There are five major objectives:
 
-Customize only the existing login page to present a GIFT University-branded login experience.
+1. Verify and enforce serial-number-only device authentication.
+2. Verify and complete the Python simulator's continuous execution and command-processing workflow.
+3. Integrate the simulator with the live production backend and local testing backend.
+4. Perform actual end-to-end testing through the Manager Dashboard.
+5. Write complete, professional device API documentation after all implementation and testing are complete.
 
-Official website:
-
-https://gift.edu.pk/
-
-Official institution name:
-
-**GIFT University**
-
-Official tagline:
-
-**Converting Knowledge into Practical Experience**
-
-Location:
-
-Gujranwala, Punjab, Pakistan.
-
-## 2.1 Research the actual branding
-
-Inspect the official GIFT University website.
-
-Identify:
-
-- Official logo and its available variants.
-- Correct spelling and capitalization of the university name.
-- Logo proportions and presentation.
-- Brand colors used on the official website.
-- Relevant typography and visual characteristics.
-- How the logo and name are presented together.
-
-Use the actual logo asset as a reference. Do not invent a logo or guess brand colors.
-
-The official website is the reference, not a generic university theme.
-
-If the official logo cannot be retrieved, investigate the available official assets and report the issue rather than substituting an unrelated logo.
-
-The university's logo and name are protected marks. This implementation is for the requested demonstration; do not imply an official endorsement or partnership. Confirm that we have permission before any public commercial use.
-
-## 2.2 Apply branding to the existing login page
-
-Make a focused change to the existing login page.
-
-The branding area above the email and password fields should include:
-
-- GIFT University logo.
-- GIFT University name.
-- Optional official tagline, if it fits naturally.
-
-The result should look like a professional university/facilities-management login page.
-
-## 2.3 Strict scope
-
-This is not a request to redesign the entire authentication system.
-
-Do not:
-
-- Rebuild the authentication module.
-- Change login routes.
-- Change authentication logic.
-- Change password validation.
-- Change session handling.
-- Change user roles or permissions.
-- Redesign the entire dashboard.
-- Change other application pages.
-- Replace the existing login form unnecessarily.
-
-Preserve the existing email and password fields, validation, forgot-password behavior, remember-me functionality, login button, error messages, and responsive behavior.
-
-Only make the necessary changes to the branding section and its immediate styling.
-
-If the existing login page already has a good layout, preserve it.
-
-**Acceptance criteria:**
-
-- The correct GIFT University branding appears above the login fields.
-- The actual logo is used where permitted and available.
-- The login form still works exactly as before.
-- Other application pages remain unchanged.
+The API documentation is the final deliverable.
 
 ---
 
-# 3. TASK TWO — GIFT UNIVERSITY DEMO ORGANIZATION AND SEEDERS
+# 3. Objective One: Serial-Number-Only Device Authentication
 
-## Objective
+## 3.1 Authentication Requirement
 
-Create a complete, reusable demonstration dataset for GIFT University.
+For the current development phase, device authentication must be based exclusively on the device's registered serial number.
 
-I need to log in to the application using the GIFT University demo account and demonstrate the platform with realistic location and AC data.
+We have intentionally decided not to implement token-based device authentication at this stage.
 
-The seeders must be usable again when deploying the application to another environment.
+**Do not require:**
 
-## 3.1 Organization
+- Device authentication tokens.
+- Bearer tokens.
+- Authorization headers.
+- API keys.
+- Token fields in request bodies.
+- Any other device credential that has not been explicitly approved.
 
-Create one demo organization:
-
-**Organization Name:** GIFT University
-
-**Location:** Gujranwala, Punjab, Pakistan
-
-Use the existing organization model and schema.
-
-Do not create a new tenant-management system.
-
-## 3.2 Demo administrator account
-
-Create one organization administrator.
-
-Suggested account:
-
-- Name: GIFT University Administrator
-- Email: `demo.admin@gift.edu.pk`
-- Role: Organization Administrator / Manager
-- Organization: GIFT University
-
-Use the existing user model, authentication system, password hashing, membership relationship, and role/permission implementation.
-
-### Email verification
-
-This is a temporary demonstration account.
-
-I do not want to configure or send an actual email verification message for this seeded account.
-
-Mark this specific seeded account as verified using the existing verification mechanism, for example by setting the appropriate verification timestamp.
-
-Important:
-
-- Do not globally disable email verification.
-- Do not weaken verification for other users.
-- Do not modify the application's authentication rules.
-- Only the explicitly seeded GIFT demo administrator should be pre-verified.
-
-### Password
-
-Reuse the existing development/demo seeder password convention if one is already defined in the repository.
-
-If no such convention exists, introduce a configurable `GIFT_DEMO_ADMIN_PASSWORD` environment setting.
-
-Do not hardcode a production password into source code or expose credentials in logs or reports.
-
-The seeder must hash the configured password using Laravel's existing hashing mechanism.
-
-## 3.3 Location hierarchy
-
-Create a realistic but small university demonstration hierarchy.
-
-Use the existing hierarchy:
-
-Organization → Site → Building → Floor → Spaces → ACs.
-
-Suggested initial structure:
-
-**Organization: GIFT University**
-
-**Site:**
-- Main Campus
-
-**Buildings:**
-- Academic Block
-- Administration Block
-
-**Floors:**
-- Ground Floor
-- First Floor
-
-**Spaces:**
-- Lecture Hall 01
-- Computer Lab 01
-- Faculty Office
-- Conference Room
-
-Use the existing generic typed-space model and relationships.
-
-These are demonstration names, not claims about the university's actual internal building layout.
-
-## 3.4 AC inventory
-
-Create approximately four AC units.
-
-Example:
-
-| AC Name | Location |
-|---|---|
-| AC - Lecture Hall 01 | Lecture Hall 01 |
-| AC - Computer Lab 01 | Computer Lab 01 |
-| AC - Faculty Office | Faculty Office |
-| AC - Conference Room | Conference Room |
-
-Populate realistic metadata using existing schema fields:
-
-- AC name.
-- AC identifier.
-- Manufacturer.
-- Model.
-- Supported temperature range.
-- Current known setpoint, where appropriate.
-- Power state.
-- Device association.
-- IR profile association, if supported.
-
-Do not invent a validated IR profile.
-
-If the repository has an existing demo/test profile, use it and clearly identify it as a simulation profile where appropriate.
-
-## 3.5 IoT device assignment
-
-Create one fully configured and functional demo IoT device.
-
-It must be assigned to:
-
-`AC - Lecture Hall 01`
-
-This is the primary device for the demonstration.
-
-The remaining two or three ACs can be included as inventory examples. They do not all need active simulator instances.
-
-The primary AC must have:
-
-- A unique device serial number.
-- A valid device record.
-- An active assignment.
-- A valid organization/tenant relationship.
-- Initial power state.
-- Initial temperature setpoint.
-- All required configuration for simulator communication.
-- Correct references to its AC and organization.
-
-The simulator must be able to communicate with the backend using this seeded device.
-
-Do not create a device record that only looks functional in the UI but cannot retrieve and process commands.
-
-## 3.6 Seeder architecture and safety
-
-Create a dedicated seeder, for example:
-
-`GiftUniversityDemoSeeder`
-
-Use the actual project naming conventions.
-
-The seeder must be:
-
-- Idempotent.
-- Safe to execute repeatedly.
-- Relationship-aware.
-- Compatible with existing migrations.
-- Independent of manually generated database IDs.
-- Safe to run in an already populated database.
-
-Use `firstOrCreate`, `updateOrCreate`, stable identifiers, or an equivalent appropriate approach.
-
-Do not:
-
-- Truncate tables.
-- Delete existing organizations.
-- Reset the entire database.
-- Drop tables.
-- Overwrite unrelated users.
-- Generate duplicate ACs or devices on repeated runs.
-
-Register the seeder appropriately so that I can run the GIFT demo dataset directly during deployment.
-
-Provide a clear command, such as:
-
-`php artisan db:seed --class=GiftUniversityDemoSeeder`
-
-If the existing `DatabaseSeeder` convention requires registration, follow the existing project design while keeping the demo seeder independently executable.
-
-Do not introduce destructive production seeding behavior.
-
-## 3.7 Seeder acceptance criteria
-
-After executing the seeder:
-
-1. GIFT University organization exists.
-2. The demo administrator exists.
-3. The account can log in without email verification.
-4. The user belongs to the correct organization.
-5. The organization hierarchy is visible.
-6. Four ACs are visible in the correct spaces.
-7. The primary AC has one active assigned device.
-8. The assigned device has a valid unique serial number.
-9. Re-running the seeder does not create duplicates.
-10. Existing unrelated database records remain untouched.
-
----
-
-# 4. TASK THREE — DEVICE SERIAL NUMBER GENERATION AND COMMAND API
-
-This task is important because the ESP32 needs a stable identity and the simulator must behave like a real registered device.
-
-Inspect the existing implementation first.
-
-Do not assume that a device authentication or serial-number mechanism already exists.
-
-## 4.1 Device serial number
-
-Establish one consistent serial-number generation mechanism.
-
-Suggested format:
-
-`HVAC-ESP32-2026-000001`
-
-Structure:
-
-- `HVAC`: product/system identifier.
-- `ESP32`: hardware family.
-- `2026`: manufacturing/provisioning year.
-- `000001`: unique sequential device number.
-
-You may adapt this format if the existing schema or conventions provide a better compatible solution, but document the final format.
-
-Requirements:
-
-1. Unique across the platform.
-2. Generated by the backend during device provisioning.
-3. Immutable after creation.
-4. Never reused after deletion or deactivation.
-5. Enforced by a database unique constraint.
-6. Safe under concurrent device registration.
-7. Easy to copy into ESP32 firmware configuration.
-8. Supported by the Python simulator.
-
-Use an atomic database-backed counter or another concurrency-safe approach.
-
-Do not generate serials using a simple row count or random number without collision protection.
-
-The serial number should not depend on the organization name. It is the identity of the physical device, not the tenant.
-
-## 4.2 Temporary serial-number-based device validation
-
-For the current demonstration, I do not want to introduce a full token/certificate provisioning workflow.
-
-I want the device to identify itself using its preconfigured serial number.
-
-The intended workflow:
-
-1. Device serial is generated and registered in the backend.
-2. The serial is stored in the ESP32 firmware configuration.
-3. The device sends its serial number when communicating with the backend.
-4. The backend checks whether the serial exists.
-5. The backend checks whether the device is active.
-6. The backend checks its current AC assignment.
-7. The backend permits only the authorized device to access its assigned device operations.
-
-Unknown, inactive, duplicate, or unassigned device identities must be rejected appropriately.
-
-### Important security distinction
-
-A serial number is an identifier, not a cryptographic authentication credential.
-
-Serial-only validation is a temporary demonstration mechanism and must not be described as production-grade device authentication.
-
-For this limited demonstration:
-
-- Keep the implementation clearly isolated as a temporary/demo authentication mode.
-- Do not pretend that serial-only identification prevents spoofing.
-- Enforce device registration, active status, current assignment, tenant boundaries, input validation, rate limiting, and command ownership.
-- Use HTTPS/TLS when available.
-- Keep a clean extension point for future per-device credentials, tokens, or certificates.
-- Do not introduce a complex token provisioning workflow now.
-
-Do not expose commands for another device by changing the serial number in a request.
-
-## 4.3 Device API inspection
-
-Before modifying the API, inspect the actual:
-
-- Device registration routes.
-- Device polling routes.
-- Command retrieval service.
-- Command acknowledgement route.
-- Transmission-result reporting route.
-- State-reporting route.
-- Device heartbeat route.
-- Existing command database model.
-- Current frontend command creation workflow.
-
-The existing API contract documentation is conceptual. Actual repository implementation takes precedence where it is already approved and working.
-
-Preserve existing API compatibility wherever possible.
-
-## 4.4 Command response: support multiple representations
-
-I want to evaluate three different ways of representing a command for the ESP32.
-
-The backend should provide equivalent representations of the same requested AC change so the device can use the interpretation strategy it supports.
-
-### Approach A — Direct command
-
-Return an explicit action.
-
-Examples:
-
-- `power_on`
-- `power_off`
-- `set_temperature`
-
-Example conceptual representation:
-
-```json
-{
-  "command_type": "direct_action",
-  "action": "set_temperature",
-  "value": 26
-}
-```
-
-For power:
-
-```json
-{
-  "command_type": "direct_action",
-  "action": "power_on"
-}
-```
-
-### Approach B — Desired state
-
-Return the complete target state.
-
-Example:
-
-```json
-{
-  "command_type": "desired_state",
-  "desired_state": {
-    "power": "on",
-    "temperature_setpoint_c": 26
-  }
-}
-```
-
-The device interprets this as the state it should reach.
-
-### Approach C — Current state and target state
-
-Return the current known state and the desired new state.
-
-Example:
-
-```json
-{
-  "command_type": "state_transition",
-  "current_state": {
-    "power": "on",
-    "temperature_setpoint_c": 25
-  },
-  "target_state": {
-    "power": "on",
-    "temperature_setpoint_c": 26
-  }
-}
-```
-
-The device can compare the two states and determine what needs to change.
-
-Include a state version or timestamp where supported. The current state can become stale, so the device must not blindly apply a transition based on an outdated state.
-
-## 4.5 Device-side strategy selection
-
-The intention is to let the device support different command interpretation strategies.
-
-Do not make the backend send contradictory commands or cause the device to execute the same operation multiple times.
-
-If all three representations are returned together, they must be clearly grouped as equivalent alternatives belonging to the same command ID.
-
-The device should select one strategy through a configurable device setting, with a deterministic default.
+The device should identify itself using its unique registered serial number.
 
 For example:
 
-- `direct_action`
-- `desired_state`
-- `state_transition`
+`device_serial_number: "AC-ESP32-000001"`
 
-The simulator must support switching between these strategies for testing.
+Use the actual serial-number format and validation rules already established in the project. Do not introduce a different format without a clear reason.
 
-Do not let the simulator execute all three representations.
+## 3.2 Backend Verification
 
-Only one representation of a command may be executed.
+Inspect the complete device authentication implementation in Laravel.
 
-If the existing API architecture makes a single versioned envelope with equivalent representations impractical, propose the smallest backward-compatible implementation and document the reason.
+Verify:
 
-## 4.6 Command lifecycle must remain intact
+1. How a device provides its serial number.
+2. How the backend validates the serial number.
+3. How the backend identifies the corresponding registered device.
+4. How unknown serial numbers are rejected.
+5. How disabled or unregistered devices are handled.
+6. Whether every device-specific endpoint consistently identifies the device through its serial number.
+7. Whether any endpoint still requires a token or Authorization header.
 
-Preserve the existing command lifecycle.
+Inspect middleware, controllers, request validation, services, and routes.
 
-The following events are different:
+Remove or bypass obsolete token requirements only where necessary to implement the approved serial-only authentication design.
 
-1. Command created by the manager.
-2. Command queued or made available.
-3. Device receives the command.
-4. Device acknowledges receipt.
-5. Device processes the command.
-6. Device reports its execution/transmission result.
-7. Device reports its updated known state.
-8. Backend stores the event and updates its state projection.
-9. Portal displays the latest reported state.
+Do not accidentally remove manager/user authentication. This change applies exclusively to IoT device authentication.
 
-Do not treat command creation as successful execution.
+## 3.3 Authentication Acceptance Criteria
 
-Do not treat device acknowledgement as proof of physical AC execution.
+The following must work:
 
-An IR transmission report is not proof that the AC physically changed state.
+| Scenario | Expected result |
+|---|---|
+| Valid registered serial number | Request accepted |
+| Unknown serial number | Request rejected |
+| Missing serial number | Request rejected |
+| Invalid serial number | Request rejected |
+| Device-specific request without token | Request accepted if serial is valid |
+| Device-specific request without Authorization header | Request accepted if serial is valid |
+| Device request containing an unnecessary token | Token is ignored unless an existing unrelated mechanism requires otherwise |
 
-The simulator must preserve these distinctions.
+Test the actual HTTP requests.
 
-## 4.7 Temperature semantics
-
-The platform's temperature value is the AC target/setpoint, not room temperature.
-
-Use the existing validated temperature range and one-degree increments.
-
-When constructing full-state IR commands, preserve any other state fields required by the validated AC profile.
-
-Do not invent support for unvalidated AC models or IR protocols.
+Do not simply inspect the source code and declare authentication verified.
 
 ---
 
-# 5. TASK FOUR — PYTHON IoT DEVICE SIMULATOR
+# 4. Objective Two: Complete Python IoT Simulator
 
-This is the most important demonstration/testing component.
-
-The Python application must behave like a continuously running ESP32 device connected to an AC.
-
-It must communicate with the actual Laravel backend.
-
-It must not be a mock backend or an independent replacement API.
-
-## 5.1 Project location
-
-Use:
+The Python simulator is located at:
 
 `D:\Projects\pythonProjects\ACHVAC_IoT_Testing`
 
-Inspect any existing files first.
+Inspect the complete existing project before making modifications.
 
-Preserve existing useful work and conventions.
+Understand its current architecture, API client, simulator/device logic, state management, GUI, configuration, logging, and entry point.
 
-Do not interfere with the two neighboring Python projects.
+Preserve useful existing functionality.
 
-## 5.2 Simulator architecture
+## 4.1 Main Program Must Be Simple
 
-Create a reusable simulator that supports one or multiple logical IoT devices.
+I want to start the complete simulator using one command:
 
-Each simulated device should have:
+```bash
+python main.py
+```
 
-- Serial number.
-- Assigned AC ID.
-- Configurable API connection.
-- Device active/inactive status.
-- Current simulated power state.
-- Current temperature setpoint.
-- Last successful poll.
-- Last heartbeat/state report.
-- Last processed command.
-- Command interpretation strategy.
-- Device connectivity status.
-- Command history.
+The main program should:
 
-Use the real backend's actual API routes and payloads.
+1. Load configuration.
+2. Select the backend environment.
+3. Initialize the simulator.
+4. Start the continuous device service.
+5. Begin polling the backend.
+6. Keep running until manually stopped.
 
-Do not invent endpoints based on conceptual documentation.
+I should not need to start multiple Python files or execute several commands.
 
-If the current backend lacks a required device endpoint, implement the smallest necessary compatible addition in the Laravel application before connecting the simulator.
+Use a clean and straightforward entry point.
 
-## 5.3 Continuous operation
+## 4.2 Single Boolean Environment Switch
 
-The simulator must run continuously.
+I want one Boolean variable in the main configuration or `main.py` that controls the entire environment.
 
-One execution should start the simulator and keep it running until the user stops it.
+Use this convention:
 
-It must not terminate after:
+```python
+USE_PRODUCTION = False
+```
 
-- One polling request.
+Expected behavior:
+
+| Variable | Environment | Backend |
+|---|---|---|
+| `False` | Local Testing | Local Laravel backend |
+| `True` | Production | `https://hvac.cosmosalgos.com` |
+
+When changing this single variable, the simulator must automatically use the corresponding:
+
+- API base URL.
+- Device API configuration.
+- Environment-specific settings.
+- Appropriate logging/configuration behavior.
+
+Do not scatter environment-selection conditions across multiple files.
+
+Keep environment URLs and other settings centralized.
+
+For the local backend URL, inspect existing project configuration and use the correct existing development URL. Do not invent a port or assume a particular local server configuration.
+
+**Important:** Do not hardcode production credentials or device tokens. Serial-number-only authentication applies in both environments.
+
+## 4.3 Continuous Execution
+
+The simulator must run indefinitely.
+
+It must not exit after:
+
+- One API request.
+- One heartbeat.
 - One command.
-- An empty response.
-- A temporary network failure.
-- A timeout.
-- A recoverable server error.
+- One successful operation.
+- An unsuccessful network request.
 
-Implement a robust event loop with:
+Expected execution:
 
-- Graceful shutdown.
-- Configurable polling interval.
-- Retry and reconnect handling.
-- Bounded exponential backoff for repeated failures.
-- Proper timeout handling.
-- Clear logging.
-- No uncontrolled busy loops.
-- No duplicate command execution.
+```text
+Start Simulator
+      |
+      v
+Initialize Device
+      |
+      v
+Connect to Backend
+      |
+      v
+Enter Continuous Loop
+      |
+      +---- Poll for Commands
+      |
+      +---- Process Received Commands
+      |
+      +---- Execute Simulated Actions
+      |
+      +---- Report Execution Results
+      |
+      +---- Maintain Device State
+      |
+      +---- Repeat Indefinitely
+```
 
-Default testing polling interval:
+Handle network failures, timeouts, temporary backend unavailability, and unexpected API responses without terminating the entire application.
 
-**5 seconds.**
+Implement sensible retry behavior and avoid excessive request rates.
 
-This is the interval for checking the backend for pending commands.
+The simulator should stop gracefully when the user presses `Ctrl+C`.
 
-## 5.4 Periodic state and heartbeat updates
+## 4.4 Command Polling Interval
 
-In addition to command polling, periodically report device status.
+The device must poll the backend every **5 seconds**.
 
-Default periodic interval:
+Expected behavior:
 
-**5 minutes.**
+1. The device sends a command-polling request.
+2. The backend identifies the device using its serial number.
+3. The backend returns any pending commands and relevant state information.
+4. If a command exists, the simulator processes it.
+5. If no command exists, the simulator waits until the next polling interval.
+6. The process repeats indefinitely.
 
-Report:
+Do not wait five seconds after every individual operation unnecessarily.
 
-- Device serial number.
-- Device connectivity/heartbeat.
-- Current known AC power state.
-- Current setpoint when AC is ON.
-- Device timestamp.
-- Last successful command information where appropriate.
+Use a consistent polling interval and avoid overlapping polling requests.
 
-When AC power is OFF, do not invent a new current operating temperature. Preserve the last known setpoint as appropriate, but do not report it as a measured room temperature.
+## 4.5 Supported Device Operations
 
-After a command is successfully simulated, report the updated state immediately rather than waiting for the next five-minute interval.
+The simulator must support the actual command types implemented in the backend.
 
-The five-second polling and five-minute periodic reporting must be independently configurable.
+At minimum, verify:
 
-## 5.5 Simulated AC behavior
+### Power Control
 
-The simulator must maintain a real internal state for each simulated AC.
+- Turn AC ON.
+- Turn AC OFF.
 
-### Power ON
+### Temperature Control
 
-When the device receives a valid ON command:
+- Increase temperature setpoint.
+- Decrease temperature setpoint.
+- Set a specific temperature.
 
-1. Log command receipt.
-2. Validate the command.
-3. Acknowledge receipt.
-4. Change the simulated AC power state to ON.
-5. Preserve or apply the appropriate target setpoint.
-6. Report the simulated execution/transmission outcome.
-7. Report updated known state.
-8. Log the final result.
+### Additional Supported Controls
 
-### Power OFF
+Inspect the existing AC catalogue, command models, IR profiles, and backend implementation.
 
-When the device receives a valid OFF command:
+Support any additional commands that are already part of the approved project implementation.
 
-1. Log command receipt.
-2. Validate the command.
-3. Acknowledge receipt.
-4. Change simulated power state to OFF.
-5. Preserve the last known setpoint where appropriate.
-6. Report the execution/transmission outcome.
-7. Report updated known state.
-8. Log the final result.
+Do not invent unsupported AC capabilities.
 
-### Temperature adjustment
+## 4.6 Command Execution Workflow
 
-When the device receives a temperature change:
+This is the most important part of the simulator.
 
-1. Log command receipt.
-2. Acknowledge receipt.
-3. Check the supported range and step.
-4. Apply the selected command interpretation strategy.
-5. Update the simulated setpoint.
-6. Report the result.
-7. Report updated known state.
+When a user performs an action from the Manager Dashboard:
 
-A temperature adjustment while OFF must follow the existing AC profile and backend rules. Do not silently invent a behavior that conflicts with the actual application.
+**Example: Turn an AC ON**
 
-### State synchronization
+1. User logs into the production dashboard.
+2. User opens AC controls.
+3. User presses ON.
+4. Laravel receives the request.
+5. Laravel creates the corresponding command and makes it available to the device.
+6. The Python simulator polls the backend.
+7. The simulator receives the pending command.
+8. The simulator identifies the command type and parameters.
+9. The simulator executes the simulated action.
+10. The simulator updates its internal AC state.
+11. The simulator reports the execution result to Laravel.
+12. Laravel processes the acknowledgement and updates the appropriate command lifecycle and device/AC state.
+13. The dashboard displays the resulting state and command status.
 
-The simulator must keep its internal state consistent with the last successfully processed command and the backend's reporting workflow.
+The same workflow must work for:
 
-Handle duplicate commands idempotently.
+- OFF commands.
+- Temperature changes.
+- Any other supported command.
 
-Do not execute the same command repeatedly when a poll returns a previously processed command.
+### Command Success and Failure
+
+Do not report a command as successfully executed before the simulator has actually processed it.
+
+Maintain the existing command lifecycle.
+
+Distinguish between:
+
+- Command created.
+- Command pending.
+- Command received by device.
+- Command execution started.
+- Command executed successfully.
+- Command execution failed.
+- Command acknowledgement received by backend.
+
+The simulator must report the appropriate status using the existing backend API contract.
+
+Do not confuse command delivery with successful execution.
+
+Do not claim that a simulated IR transmission physically controlled a real AC.
 
 ---
 
-# 6. SIMULATOR VISUAL MONITORING INTERFACE
+# 5. Objective Three: Device State and Heartbeat
 
-I need to visually observe what the simulator is doing during the demonstration.
+The simulator must maintain persistent in-memory device state while running.
 
-Terminal logs alone are not sufficient.
-
-Create a small, clean, easy-to-use local monitoring interface for the Python simulator.
-
-**Do not modify the existing Laravel web application's frontend to create this monitor.**
-
-## 6.1 Preferred interface
-
-Use a lightweight desktop dashboard, preferably Python Tkinter if it fits the existing project.
-
-Avoid unnecessary large dependencies.
-
-The dashboard should have a professional, clean layout.
-
-### Device overview
-
-Show each simulated device in an individual card or row.
-
-Display:
+At minimum, track:
 
 - Device serial number.
-- Associated AC name.
-- Connectivity status.
-- Power state: ON/OFF.
-- Current setpoint.
-- Last poll time.
-- Last heartbeat/state update.
-- Last command.
-- Last command result.
+- AC power state.
+- Current temperature setpoint.
+- Last successfully processed command.
+- Last command execution result.
+- Last successful backend communication.
+- Device connectivity/online status where applicable.
 
-Use clear visual indicators:
+Use the existing backend's state representation and API contract.
 
-- Green: ON / successful.
-- Gray: OFF / idle.
-- Amber: pending / warning / stale.
-- Red: failed / disconnected.
+## 5.1 Immediate State Reporting
 
-Do not confuse device connectivity with AC power state.
+After executing a command:
 
-### Live event log
+1. Update the simulator's internal state.
+2. Immediately report the execution result to Laravel.
+3. Report the updated state where required by the existing API design.
+4. Ensure the backend receives the correct state and command lifecycle information.
 
-Provide a continuously updating log panel.
+Do not wait for the periodic heartbeat before reporting a command result.
 
-Show events such as:
+## 5.2 Periodic Heartbeat
 
-```text
-[10:00:00] DEVICE CONNECTED
-[10:00:05] POLL REQUEST SENT
-[10:00:05] NO PENDING COMMANDS
+The existing requirement is:
 
-[10:02:10] COMMAND RECEIVED
-Device: HVAC-ESP32-2026-000001
-Command: POWER ON
+- Command polling: every 5 seconds.
+- Periodic heartbeat/state update: every 5 minutes.
 
-[10:02:10] COMMAND ACKNOWLEDGED
-[10:02:10] SIMULATED AC STATE: ON
-[10:02:10] STATE REPORT SENT
-[10:02:11] BACKEND REPORT ACCEPTED
+The heartbeat should communicate the appropriate current device state.
+
+Respect existing backend semantics regarding temperature reporting and AC power state.
+
+For example, temperature setpoint should not be confused with room temperature.
+
+Do not generate misleading state updates or mark an AC ON merely because the device itself is online.
+
+If the backend already has a defined heartbeat interval or state-reporting contract, reconcile it with this requirement without creating duplicate reporting mechanisms.
+
+---
+
+# 6. Objective Four: Simple Terminal-Based Simulator
+
+I want the simulator to remain extremely simple to operate.
+
+When I run:
+
+```bash
+python main.py
 ```
 
-Use actual timestamps and actual responses, not fabricated success messages.
+The simulator should start automatically and remain active.
 
-### Controls
+I will use the existing HVAC Manager Dashboard to perform testing.
 
-Provide simple controls:
+I do not need a complicated graphical interface.
 
-- Start simulator.
-- Stop simulator.
-- Pause/resume polling if safe.
-- Add a simulated device.
-- Enable/disable a device.
-- Select command interpretation strategy.
-- View selected device details.
-- Clear the visible log panel without deleting persistent history.
+The terminal should continuously display useful logs.
 
-If practical, allow a user to run a manual test against a selected simulated device.
+## 6.1 Required Terminal Logs
 
-The monitor must remain responsive while simulator requests execute in the background.
+Examples of the desired output:
 
-Use thread-safe communication between simulator workers and the GUI.
+```text
+==================================================
+       HVAC IoT DEVICE SIMULATOR
+==================================================
 
-## 6.2 Persistent logs
+Environment: PRODUCTION
+Backend: https://hvac.cosmosalgos.com
 
-Store structured logs locally.
+Device Serial: AC-ESP32-000001
+Device Initialized: SUCCESS
+Simulator Status: RUNNING
+
+==================================================
+
+[13:00:00] Polling backend...
+[13:00:00] No pending commands.
+
+[13:00:05] Polling backend...
+[13:00:05] Command received: POWER_ON
+[13:00:05] Executing command...
+[13:00:05] AC Power State: ON
+[13:00:05] Reporting execution result...
+[13:00:05] Backend acknowledgement: SUCCESS
+
+[13:00:10] Polling backend...
+[13:00:10] No pending commands.
+
+[13:00:15] Polling backend...
+[13:00:15] Command received: SET_TEMPERATURE
+[13:00:15] Target Temperature: 24°C
+[13:00:15] Executing command...
+[13:00:15] Temperature Updated: 24°C
+[13:00:15] Backend acknowledgement: SUCCESS
+
+[13:05:00] Periodic heartbeat sent.
+[13:05:00] Device state synchronized.
+
+==================================================
+```
+
+These are illustrative examples, not a replacement for the actual API response structure.
+
+Logs should clearly distinguish:
+
+- Polling.
+- Command reception.
+- Command execution.
+- State changes.
+- API responses.
+- Successful acknowledgements.
+- Failures.
+- Heartbeats.
+- Connection/reconnection events.
+
+Use readable timestamps and appropriate log levels.
+
+Avoid printing excessive raw payloads or sensitive information.
+
+## 6.2 No Unnecessary GUI
+
+The existing simulator may have a GUI/dashboard.
+
+Inspect it before making changes.
+
+If the GUI is unnecessary for the required workflow, simplify the startup experience and use terminal logging.
+
+Do not spend time building an additional dashboard.
+
+The primary dashboard for testing is the existing Laravel Manager Dashboard.
+
+---
+
+# 7. Objective Five: Actual End-to-End Verification
+
+This is mandatory.
+
+Do not finish after implementing the code.
+
+The entire workflow must be tested.
+
+## 7.1 Backend Authentication Tests
+
+Verify:
+
+- Valid serial number works.
+- Invalid serial number fails.
+- Missing serial number fails.
+- No device token is required.
+- No Authorization header is required.
+- Device endpoints consistently follow the serial-only authentication rule.
+
+## 7.2 Simulator Tests
+
+Verify:
+
+- `python main.py` starts successfully.
+- Correct environment is selected through the Boolean variable.
+- Simulator remains running indefinitely.
+- Polling occurs at five-second intervals.
+- Heartbeat occurs at five-minute intervals.
+- Network failures do not terminate the simulator.
+- Simulator reconnects when the backend becomes available again.
+- State remains consistent during execution.
+- `Ctrl+C` stops the simulator gracefully.
+
+## 7.3 Dashboard-to-Device Integration Tests
+
+Use the actual Manager Dashboard.
+
+Run these tests:
+
+| Test | Dashboard Action | Expected Simulator Result |
+|---|---|---|
+| 1 | Turn AC ON | Simulator receives and executes ON |
+| 2 | Turn AC OFF | Simulator receives and executes OFF |
+| 3 | Set temperature to 24°C | Simulator updates setpoint to 24°C |
+| 4 | Change temperature again | Simulator updates to the new value |
+| 5 | Send multiple commands sequentially | Commands are processed correctly |
+| 6 | Send commands while simulator is offline | Existing backend lifecycle handles pending commands correctly |
+| 7 | Restart simulator | Device reconnects and resumes polling |
+| 8 | Wait for heartbeat | Backend receives periodic state update |
+
+Test both environments where available:
+
+1. Local Testing.
+2. Production: `https://hvac.cosmosalgos.com`.
+
+Do not use production testing in a way that modifies unrelated organizations, devices, or customer data.
+
+Use the dedicated GIFT University demo organization and its designated functional device for production verification.
+
+## 7.4 Verify the Complete Lifecycle
+
+For every tested command, correlate:
+
+- Dashboard action.
+- Laravel command record.
+- Device polling request.
+- Command response.
+- Simulator execution log.
+- Device acknowledgement request.
+- Backend command status.
+- Updated AC/device state.
+- Dashboard display.
+
+The command must complete the actual round trip.
+
+A successful HTTP response alone is not sufficient evidence that the workflow works.
+
+## 7.5 Important Testing Rule
+
+Never mark a test as verified just because the code appears correct.
+
+Only mark it verified when the actual test has been executed and the expected result has been observed.
+
+If production access, credentials, a running simulator, or a test device is unavailable, clearly report the limitation.
+
+Do not fabricate successful test results.
+
+---
+
+# 8. Final Deliverable: Complete IoT Device API Documentation
+
+**This must be the final implementation deliverable.**
+
+Only write the final API documentation after:
+
+1. Backend authentication has been verified.
+2. Device endpoints have been inspected.
+3. Python simulator integration is complete.
+4. Command execution has been tested.
+5. State synchronization has been tested.
+6. End-to-end verification has been performed.
+
+The documentation must describe the actual implemented API, not an idealized or proposed API.
+
+Save the documentation in the Laravel repository using an appropriate location, preferably:
+
+`docs/DEVICE_API_DOCUMENTATION.md`
+
+If an existing documentation structure is already established, follow it.
+
+## 8.1 Documentation Scope
+
+Document every API endpoint intended for the ESP32 IoT device.
+
+Inspect the actual Laravel routes, controllers, middleware, requests, resources, services, and response structures.
+
+Do not document Manager Dashboard APIs as device APIs unless a device is explicitly expected to use them.
+
+## 8.2 Required Documentation Sections
+
+### A. Introduction
+
+Explain:
+
+- Purpose of the device API.
+- System architecture.
+- Communication between ESP32 and Laravel.
+- Device identification mechanism.
+- Supported device operations.
+
+### B. Authentication
+
+Clearly explain serial-number-only authentication.
+
+Document:
+
+- How the device identifies itself.
+- Where the serial number must be provided.
+- Required headers.
+- Whether Authorization headers are needed.
+- Authentication validation.
+- Invalid/missing serial number responses.
+
+Explicitly state that token-based device authentication is not currently required.
+
+### C. Base URLs
+
+Document the actual available environments:
+
+- Local development/testing.
+- Production: `https://hvac.cosmosalgos.com`.
+
+Explain how to configure the device for each environment.
+
+### D. Common Request Conventions
+
+Document:
+
+- HTTP methods.
+- Content-Type.
+- Required headers.
+- Serial number placement.
+- Timestamp conventions.
+- Date/time formats.
+- Units.
+- Field naming conventions.
+- Request validation.
+
+### E. Every Device API Endpoint
+
+For every endpoint, provide:
+
+1. Endpoint name.
+2. Purpose.
+3. HTTP method.
+4. Exact URL/path.
+5. Required headers.
+6. Authentication requirements.
+7. Required request parameters.
+8. Optional request parameters.
+9. Complete JSON request example.
+10. Field-by-field explanation.
+11. Successful HTTP status.
+12. Complete successful response example.
+13. Error responses.
+14. Error codes and meanings.
+15. When the device should call the endpoint.
+16. How the ESP32 should process its response.
+
+At minimum, inspect and document the implemented equivalents of:
+
+- Device authentication/identity validation.
+- Device configuration retrieval.
+- Pending command polling.
+- Command acknowledgement.
+- Command transmission reporting, if applicable.
+- Device heartbeat.
+- Device state reporting.
+- Device event reporting.
+- Physical remote event reporting.
+- Policy retrieval/acknowledgement, if applicable.
+- Device logout or deactivation, if applicable.
+
+These are areas to inspect, not instructions to invent missing endpoints.
+
+### F. Command Lifecycle
+
+Explain the complete command lifecycle.
 
 Include:
 
-- Timestamp.
-- Device serial.
-- AC identifier.
-- Event type.
-- Command ID where relevant.
-- API endpoint/action where useful.
-- Result.
-- Error details with secrets removed.
+- Command creation.
+- Pending command retrieval.
+- Device receipt.
+- Command execution.
+- Success/failure reporting.
+- Backend acknowledgement.
+- Final command status.
 
-Use log rotation or bounded retention.
+Explain the difference between command delivery and actual execution.
 
-The monitoring GUI should be able to show recent activity.
+### G. Device State Synchronization
 
-## 6.3 Easy manual operation
+Explain:
 
-I should be able to use this simulator again in the future without editing Python source code.
+- AC power state.
+- Temperature setpoint.
+- Device online/offline status.
+- Heartbeat.
+- State reporting.
+- Timestamp handling.
+- How the backend determines the latest known state.
 
-Provide:
+### H. Complete Device Workflow
 
-- Device registration through the GUI or CLI.
-- Configuration persistence.
-- Start/stop.
-- Add/edit/disable device.
-- Change polling interval.
-- Change command interpretation strategy.
-- Inspect simulated state.
-- Inspect command history.
-- Run individual test scenarios.
+Provide step-by-step workflows for:
 
-SQLite may be used for the simulator's local device registry and test history.
+1. Device startup.
+2. Device identity validation.
+3. Configuration retrieval.
+4. Command polling.
+5. Power ON.
+6. Power OFF.
+7. Temperature adjustment.
+8. Command acknowledgement.
+9. Periodic heartbeat.
+10. Network disconnection and recovery.
 
-Keep this SQLite database separate from the Laravel application's database.
+### I. ESP32 Implementation Examples
 
-Provide a simple startup command and a short README.
+Provide practical examples using the actual API contract.
 
-The normal startup should make it obvious that the simulator is running and that its events are visible in the dashboard.
+Use Arduino/C++ examples where appropriate.
 
-## 6.4 Important limitation
+Include:
 
-This is software simulation.
+- HTTP request construction.
+- Serial-number transmission.
+- JSON parsing.
+- Command processing.
+- State management.
+- Acknowledgement.
+- Error handling.
+- Polling loop.
 
-It verifies backend communication and simulated device behavior. It does not physically transmit infrared signals to an AC.
+Do not include token-based authentication in these examples.
 
-Do not claim physical ESP32 or IR hardware validation from simulator results.
+### J. Error Handling and Retry Strategy
 
----
+Explain:
 
-# 7. TASK EXECUTION ORDER
+- Invalid serial number.
+- Missing parameters.
+- Invalid command.
+- Device disabled.
+- No pending commands.
+- Network timeout.
+- Server error.
+- Duplicate requests.
+- Failed acknowledgement.
+- Device reconnection.
 
-Implement in this exact order.
+Describe retry behavior consistent with the actual backend implementation.
 
-### Phase 1 — Repository inspection and safety plan
+### K. Complete API Reference
 
-- Inspect the application.
-- Inspect existing Python project.
-- Read relevant documentation.
-- Map existing database and API relationships.
-- Identify files that need modification.
-- Identify possible regressions.
-- Prepare a concise implementation checklist.
+Include a summary table of all device endpoints:
 
-Do not begin with a broad refactor.
+| Endpoint | Method | Purpose | Required Serial Number |
+|---|---|---|---|
 
-### Phase 2 — Login page branding
+### L. Testing Examples
 
-- Research official GIFT University branding.
-- Apply the branding to the existing login page only.
-- Verify login still works.
+Provide cURL examples for each important endpoint.
 
-### Phase 3 — GIFT demo seeders
+Examples must be executable against the actual implemented API.
 
-- Implement the demo organization.
-- Implement the admin account.
-- Implement location hierarchy.
-- Implement four AC records.
-- Implement the primary assigned device.
-- Verify idempotency.
-
-### Phase 4 — Device serial number mechanism
-
-- Inspect existing device identity.
-- Implement the agreed serial-number generation mechanism.
-- Implement temporary serial-based device validation.
-- Preserve a clear upgrade path to stronger authentication.
-
-### Phase 5 — Device command API improvements
-
-- Inspect existing device API contract.
-- Implement compatible command representations.
-- Ensure a device selects and executes only one interpretation.
-- Preserve existing acknowledgement and state-reporting behavior.
-
-### Phase 6 — Python simulator
-
-- Locate or create the simulator project.
-- Implement the API client.
-- Implement continuous polling.
-- Implement simulated AC state.
-- Implement command processing.
-- Implement acknowledgement and reporting.
-- Implement five-minute periodic status reporting.
-- Implement live visual monitoring.
-- Implement persistent logs and device configuration.
-
-### Phase 7 — Comprehensive testing (LAST)
-
-Do not perform the full end-to-end testing phase before all implementation work is complete.
-
-After the four workstreams are implemented, run the tests described below.
-
-Fix defects and repeat the relevant tests.
+Include sample success and failure responses.
 
 ---
 
-# 8. FINAL TESTING AND ACCEPTANCE CRITERIA
+# 9. Engineering Rules and Constraints
 
-Testing is the final phase.
+Follow these rules throughout the task.
 
-The purpose is to verify the complete real workflow using the GIFT University demo account and its primary assigned AC/device.
+1. Inspect both repositories before modifying code.
+2. Preserve existing architecture and established conventions.
+3. Do not rebuild existing functionality unnecessarily.
+4. Do not introduce token-based device authentication.
+5. Do not require Authorization headers for device requests.
+6. Do not modify manager/user authentication.
+7. Do not introduce unnecessary dependencies.
+8. Do not create a complicated Python GUI.
+9. Keep simulator startup as simple as `python main.py`.
+10. Use one Boolean variable for environment switching.
+11. Keep command polling at five seconds.
+12. Keep periodic heartbeat/state reporting at five minutes.
+13. Report command execution immediately.
+14. Preserve command lifecycle semantics.
+15. Handle network failures without terminating the simulator.
+16. Do not use destructive database operations.
+17. Do not run `migrate:fresh` or truncate production tables.
+18. Do not overwrite production data or unrelated organization records.
+19. Do not hardcode secrets.
+20. Do not claim tests passed without executing them.
+21. Do not write API documentation based on assumptions.
+22. Do not modify unrelated frontend or backend features.
 
-## 8.1 Login and organization tests
-
-- GIFT demo administrator can log in.
-- Email verification does not block this seeded account.
-- User is assigned to the correct organization.
-- Organization data is tenant-scoped.
-- Other organizations and users remain unaffected.
-
-## 8.2 Seeder tests
-
-- Run the GIFT seeder once.
-- Verify all expected records.
-- Run it a second time.
-- Confirm no duplicate records.
-- Confirm no unrelated records are deleted or overwritten.
-
-## 8.3 Serial-number tests
-
-- Generate a new serial.
-- Confirm format.
-- Confirm uniqueness.
-- Confirm duplicate serial rejection.
-- Confirm inactive device rejection.
-- Confirm unknown device rejection.
-- Confirm correct device-to-AC assignment.
-- Confirm another device cannot access the primary device's commands by changing its submitted serial.
-
-## 8.4 Command API tests
-
-Test the three command representations:
-
-1. Direct command.
-2. Desired state.
-3. Current state and target state.
-
-Verify:
-
-- Correct command ID.
-- Correct device assignment.
-- Correct AC assignment.
-- One interpretation executed per command.
-- No duplicate execution.
-- Invalid commands rejected.
-- Expired commands rejected.
-- Acknowledgement correctly recorded.
-- Execution/transmission result correctly recorded.
-- Updated state correctly recorded.
-
-Test stale current-state information in the state-transition approach.
-
-## 8.5 Python simulator tests
-
-- Simulator starts successfully.
-- It remains running continuously.
-- Command polling occurs every five seconds by default.
-- Periodic state/heartbeat reporting occurs every five minutes.
-- Network failures do not terminate the simulator.
-- Reconnection works.
-- Empty polls do not create errors.
-- Duplicate commands are not executed twice.
-- Power ON works.
-- Power OFF works.
-- Temperature changes work.
-- All three command interpretation strategies work.
-- State is correctly reported.
-- Simulator GUI remains responsive.
-- Logs accurately show actual events.
-- Simulator can be stopped gracefully.
-
-## 8.6 Actual web-to-simulator end-to-end tests
-
-This is the most important test.
-
-Use the actual GIFT University demo account in the existing web application.
-
-Use the seeded primary AC and its assigned simulator device.
-
-### Scenario A — Power ON
-
-1. Log in to the web application as the GIFT demo administrator.
-2. Open the GIFT University organization.
-3. Navigate to the primary AC.
-4. Click ON.
-5. Verify that the backend creates a command.
-6. Verify that the simulator receives it.
-7. Verify acknowledgement.
-8. Verify simulated AC state changes to ON.
-9. Verify updated state is reported to the backend.
-10. Verify the web application displays the updated reported state.
-
-### Scenario B — Temperature increase
-
-1. Increase the setpoint from the web application.
-2. Verify the backend command.
-3. Verify simulator receipt.
-4. Verify the simulated setpoint changes.
-5. Verify the execution result.
-6. Verify the updated setpoint appears in the web application.
-
-### Scenario C — Temperature decrease
-
-Repeat the workflow with a lower setpoint.
-
-### Scenario D — Power OFF
-
-1. Click OFF in the web application.
-2. Verify command delivery.
-3. Verify acknowledgement.
-4. Verify simulated state changes to OFF.
-5. Verify backend state report.
-6. Verify web application reflects the updated reported state.
-
-### Scenario E — Continuous operation
-
-Leave the simulator running.
-
-Verify:
-
-- Polling continues.
-- Heartbeat/state reporting continues.
-- No duplicate commands execute.
-- Logs remain visible.
-- Temporary connectivity failures recover.
-
-Record actual timestamps and command lifecycle latency.
-
-A five-second polling interval does not guarantee that every complete workflow finishes in five seconds.
-
-## 8.7 Regression testing
-
-Check that unrelated existing features continue working.
-
-At minimum:
-
-- Login/logout.
-- Organization isolation.
-- Locations hierarchy.
-- AC inventory.
-- AC details.
-- Power controls.
-- Temperature controls.
-- Existing command history.
-- Device reporting.
-- Existing frontend navigation.
-
-Do not redesign the Grid View or other already approved UI areas as part of this task.
-
-## 8.8 Testing reports
-
-Provide a final report containing:
-
-- Test case.
-- Expected result.
-- Actual result.
-- Pass/fail status.
-- Relevant evidence.
-- Failed cases.
-- Outstanding limitations.
-- Any tests not executed.
-
-Do not report a test as passed unless it was actually executed.
+If an existing implementation contradicts an approved requirement, identify the discrepancy, explain it, and correct it within the scope of this task.
 
 ---
 
-# 9. STRICT CHANGE AND SAFETY RULES
+# 10. Execution Order
 
-These rules apply throughout the implementation.
+Follow this exact sequence.
 
-1. Do not rewrite the application.
-2. Do not change the overall frontend design.
-3. Do not redesign the dashboard.
-4. Do not modify unrelated pages.
-5. Do not change the existing authentication architecture.
-6. Do not introduce unnecessary dependencies.
-7. Do not create a second backend for the simulator.
-8. Do not invent API routes without inspecting the current implementation.
-9. Do not modify neighboring Python projects.
-10. Do not delete existing database records.
-11. Do not run destructive migrations or database resets.
-12. Do not change production configuration or deployment settings.
-13. Do not expose passwords, tokens, or other secrets in logs.
-14. Preserve existing tenant isolation.
-15. Preserve command lifecycle and state provenance.
-16. Do not treat device connectivity as AC power state.
-17. Do not treat IR transmission as physical AC confirmation.
-18. Do not claim the simulator proves physical hardware functionality.
+### Phase 1 — Repository Inspection
 
-Before modifying an existing component or service, inspect its current dependencies and usage.
+Inspect the Laravel repository and Python simulator.
 
-Before changing a database schema, identify the migration impact and confirm that existing records remain compatible.
+Identify:
 
-If an implementation requires a potentially destructive change, stop and explain the risk rather than proceeding blindly.
+- Existing device routes.
+- Authentication implementation.
+- Device middleware.
+- Command lifecycle.
+- State management.
+- Heartbeat implementation.
+- Simulator architecture.
+- Existing configuration.
+- Existing tests.
+- Current documentation.
 
-Keep all changes focused, maintainable, and consistent with the existing application.
+Produce a concise initial assessment.
+
+### Phase 2 — Backend Authentication
+
+Implement and verify serial-number-only device authentication.
+
+Test all authentication acceptance criteria.
+
+### Phase 3 — Python Simulator
+
+Complete the simulator.
+
+Implement:
+
+- Single Boolean environment switch.
+- Local and production configuration.
+- Simple `main.py`.
+- Continuous execution.
+- Five-second polling.
+- Five-minute heartbeat.
+- Command processing.
+- Immediate execution reporting.
+- State synchronization.
+- Terminal logging.
+- Retry and graceful shutdown.
+
+### Phase 4 — Backend/Simulator Integration
+
+Connect the simulator to the actual Laravel APIs.
+
+Resolve request/response incompatibilities.
+
+Do not modify the API contract arbitrarily just to make the simulator work.
+
+### Phase 5 — End-to-End Testing
+
+Perform the complete dashboard-to-simulator-to-backend workflow.
+
+Test ON, OFF, temperature changes, acknowledgements, state updates, polling, and heartbeat.
+
+Test local and production environments where access is available.
+
+### Phase 6 — Final API Documentation
+
+After all implementation and testing, write:
+
+`docs/DEVICE_API_DOCUMENTATION.md`
+
+Ensure every documented request, response, endpoint, field, and status matches the actual implementation.
 
 ---
 
-# 10. FINAL DELIVERY REPORT
+# 11. Final Report
 
-When finished, provide a structured summary.
+When the work is complete, provide a detailed engineering report.
 
-### A. Login branding
-- Official logo asset used.
-- Relevant files changed.
-- What changed on the login page.
-- Confirmation that authentication remains intact.
+Use the following structure:
 
-### B. GIFT University seeders
-- Seeder names.
-- Created organization.
-- Created admin account identifier.
-- Created hierarchy.
-- Number of ACs.
-- Primary device serial number.
-- Exact command to execute the seeder.
-- Idempotency verification.
+## 1. Executive Summary
+What was completed and the overall result.
 
-Do not print the configured password in the report.
-
-### C. Device identity and API
-- Final serial-number format.
-- Serial generation mechanism.
-- Validation behavior.
-- Temporary security limitations.
-- Supported command representations.
-- Actual API endpoints modified.
-- Backward-compatibility considerations.
-
-### D. Python simulator
-- Project location.
-- Main files/modules.
-- Startup instructions.
-- Default polling interval.
-- Periodic reporting interval.
-- GUI monitoring instructions.
-- Log location.
-- How to add another device.
-- How to switch command interpretation strategies.
-- How to stop the simulator.
-
-### E. Testing
+## 2. Authentication
+- Previous implementation.
+- Changes made.
+- Serial-only authentication verification.
 - Test results.
-- End-to-end test evidence.
-- Failed or skipped cases.
-- Remaining limitations.
-- Any recommended follow-up work.
 
-### F. Changed files
-Provide a clear list of changed, created, and removed files.
+## 3. Python Simulator
+- Existing issues.
+- Changes made.
+- Main program usage.
+- Environment switching.
+- Polling and heartbeat behavior.
+- Logging and error handling.
 
-Do not hide failures or claim completion without evidence.
+## 4. Backend Integration
+- Endpoints used.
+- Command processing.
+- Acknowledgement.
+- State synchronization.
+
+## 5. End-to-End Test Results
+
+Use a table:
+
+| Test | Expected Result | Actual Result | Status | Evidence |
+|---|---|---|---|---|
+
+Use only these statuses:
+
+- VERIFIED
+- FAILED
+- BLOCKED
+- NOT TESTED
+
+## 6. Files Modified
+List every modified or created file and briefly explain its purpose.
+
+## 7. API Documentation
+Provide its exact repository path and summarize its contents.
+
+## 8. How to Run the Simulator
+
+The instructions should be extremely simple.
+
+For example:
+
+1. Open `main.py`.
+2. Set `USE_PRODUCTION = False` for local testing or `True` for production.
+3. Run:
+
+```bash
+python main.py
+```
+
+4. Open the HVAC Manager Dashboard.
+5. Perform AC operations.
+6. Observe the simulator logs and dashboard state.
+
+Include any actual prerequisites or configuration steps discovered during implementation.
+
+## 9. Remaining Issues
+List anything incomplete, blocked, or requiring manual verification.
 
 ---
 
-# FINAL INSTRUCTION
+# 12. Definition of Done
 
-I have a university demonstration coming up shortly.
+The task is complete only when:
 
-I need a stable, working result, not a large collection of unfinished changes.
+- [ ] Device authentication uses only the registered serial number.
+- [ ] No device token is required in headers or request bodies.
+- [ ] Invalid device serial numbers are rejected.
+- [ ] All intended device endpoints follow the same authentication rule.
+- [ ] Python simulator starts through `python main.py`.
+- [ ] A single Boolean switches between local testing and production.
+- [ ] Simulator runs continuously.
+- [ ] Commands are polled every five seconds.
+- [ ] Heartbeat/state reporting occurs every five minutes.
+- [ ] ON commands work end to end.
+- [ ] OFF commands work end to end.
+- [ ] Temperature commands work end to end.
+- [ ] Execution results are immediately reported.
+- [ ] Backend command lifecycle is correctly updated.
+- [ ] Device/AC state is synchronized.
+- [ ] Network failures do not terminate the simulator.
+- [ ] Terminal logs clearly show the complete workflow.
+- [ ] Actual dashboard-to-simulator integration has been tested.
+- [ ] Production workflow has been verified where access permits.
+- [ ] Complete device API documentation has been written last.
+- [ ] Final report accurately distinguishes verified results from untested or blocked items.
 
-Focus only on the four requested workstreams.
-
-The most important demonstration workflow is:
-
-**GIFT University Login → GIFT Organization → Primary AC → Web ON/OFF or Temperature Change → Python Simulator Receives Command → Simulated State Changes → Backend Receives Updated State → Web Application Displays Updated State.**
-
-I want to watch this entire workflow through the existing web application and the simulator's visual monitoring interface.
-
-Keep the implementation small, safe, and functional.
-
-Do not sacrifice existing working features to implement new ones.
-
-**We are fixing and completing the existing product, not breaking it and rebuilding it.**
+**Final instruction: Take the time necessary to do this properly. Prioritize correctness, integration reliability, and complete verification over speed. The goal is a working system, not merely code that looks complete.**
