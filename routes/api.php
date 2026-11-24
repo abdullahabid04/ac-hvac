@@ -43,6 +43,10 @@ Route::prefix('v1')->group(function () {
         });
     });
 
+    Route::post('/heartbeat', [DeviceController::class, 'unifiedHeartbeat'])
+        ->middleware(['device.auth', 'throttle:120,1'])
+        ->name('api.device.unified-heartbeat');
+
     Route::prefix('device')
         ->middleware(['device.auth', 'throttle:120,1'])
         ->group(function () {

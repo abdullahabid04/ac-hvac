@@ -15,7 +15,7 @@
 // Environment switch
 // Set USE_PRODUCTION to true to test against https://hvac.cosmosalgos.com
 // Set USE_PRODUCTION to false for local testing
-#define USE_PRODUCTION false
+#define USE_PRODUCTION true
 
 #if USE_PRODUCTION
   // Production backend (HTTPS)
@@ -833,14 +833,57 @@ String makeEventId(const char* type) {
   return String(type) + "-" + String(deviceSerialNumber) + "-" + String(millis());
 }
 
+// Pick the correct client class based on URL scheme:
+//   http://  -> WiFiClient
+//   https:// -> WiFiClientSecure
+bool isHttps(const char* url) {
+  return strncmp(url, "https://", 8) == 0;
+}
+
+void addSerialHeader(HTTPClient& http) {
+  http.addHeader("X-Device-Serial", deviceSerialNumber);
+  http.addHeader("Content-Type", "application/json");
+  http.addHeader("Accept", "application/json");
+}
+
+// Generate an ISO 8601 UTC timestamp from NTP time
+String getTimestamp() {
+  time_t now = time(nullptr);
+  if (now == 0) {
+    // Fallback if NTP hasn't synced yet
+    return "2026-01-01T00:00:00+00:00";
+  }
+  struct tm* timeinfo = gmtime(&now);
+  char buf[32];
+  snprintf(buf, sizeof(buf), "%04d-%02d-%02dT%02d:%02d:%02dZ",
+           timeinfo->tm_year + 1900, timeinfo->tm_mon + 1, timeinfo->tm_mday,
+           timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec);
+  return String(buf);
+}
+
+// Generate a unique event_id for idempotency
+String makeEventId(const char* type) {
+  return String(type) + "-" + String(deviceSerialNumber) + "-" + String(millis());
+}
+
+// Helper: begin an HTTPClient with the right client type for the URL
+bool httpBegin(HTTPClient& http, const String& url) {
+  if (isHttps(url.c_str())) {
+    static WiFiClientSecure secureClient;
+    secureClient.setInsecure();
+    return http.begin(secureClient, url);
+  } else {
+    static WiFiClient regularClient;
+    return http.begin(regularClient, url);
+  }
+}
+
 // 1. Heartbeat — tell backend the device is online
 void sendHeartbeat() {
-  WiFiClientSecure client;
-  client.setInsecure();
-
   String endpoint = String(baseUrl) + "/device/heartbeat";
-  if (https.begin(client, endpoint)) {
-    addSerialHeader(https);
+  HTTPClient http;
+  if (httpBegin(http, endpoint)) {
+    addSerialHeader(http);
 
     String eventId = makeEventId("hb");
     String payload = "{";
@@ -853,19 +896,19 @@ void sendHeartbeat() {
     payload += "}";
 
     Serial.println("Sending heartbeat...");
-    int httpCode = https.POST(payload);
+    int httpCode = http.POST(payload);
 
     if (httpCode > 0) {
       Serial.printf("Heartbeat HTTP %d\n", httpCode);
-      String response = https.getString();
+      String response = http.getString();
       Serial.println(response);
       server_connection_status = true;
     } else {
-      Serial.printf("Heartbeat failed: %s\n", https.errorToString(httpCode).c_str());
+      Serial.printf("Heartbeat failed: %s\n", http.errorToString(httpCode).c_str());
       server_connection_status = false;
     }
 
-    https.end();
+    http.end();
   } else {
     Serial.println("Failed to connect for heartbeat.");
     server_connection_status = false;
@@ -874,12 +917,10 @@ void sendHeartbeat() {
 
 // Report current AC state to backend
 void reportState() {
-  WiFiClientSecure client;
-  client.setInsecure();
-
   String endpoint = String(baseUrl) + "/device/state";
-  if (https.begin(client, endpoint)) {
-    addSerialHeader(https);
+  HTTPClient http;
+  if (httpBegin(http, endpoint)) {
+    addSerialHeader(http);
 
     String eventId = makeEventId("state");
     String payload = "{";
@@ -893,35 +934,33 @@ void reportState() {
     payload += "}";
 
     Serial.println("Reporting state: power=" + String(ACStatus ? "on" : "off") + ", temp=" + String(ACTemp));
-    int httpCode = https.POST(payload);
+    int httpCode = http.POST(payload);
 
     if (httpCode > 0) {
       Serial.printf("State report HTTP %d\n", httpCode);
-      String response = https.getString();
+      String response = http.getString();
       Serial.println(response);
     } else {
-      Serial.printf("State report failed: %s\n", https.errorToString(httpCode).c_str());
+      Serial.printf("State report failed: %s\n", http.errorToString(httpCode).c_str());
     }
 
-    https.end();
+    http.end();
   } else {
     Serial.println("Failed to connect for state report.");
   }
 }
 
-// Poll for pending commands, execute each, and report results
+// Poll for pending commands, wait 3 seconds, then acknowledge each
 void pollAndExecuteCommands() {
-  WiFiClientSecure client;
-  client.setInsecure();
-
   String endpoint = String(baseUrl) + "/device/commands/pending";
-  if (https.begin(client, endpoint)) {
-    addSerialHeader(https);
+  HTTPClient http;
+  if (httpBegin(http, endpoint)) {
+    addSerialHeader(http);
 
-    int httpCode = https.GET();
+    int httpCode = http.GET();
 
     if (httpCode > 0) {
-      String response = https.getString();
+      String response = http.getString();
       Serial.println("Pending commands response:");
       Serial.println(response);
 
@@ -938,19 +977,25 @@ void pollAndExecuteCommands() {
             const char* cmdType = cmd["command_type"] | "";
             JsonObject desiredState = cmd["desired_state"];
 
-            Serial.print("Executing command: ");
-            Serial.println(cmdId);
+            Serial.print("Command received: ");
+            Serial.print(cmdId);
+            Serial.print(" type=");
+            Serial.print(cmdType);
+            Serial.print(" desired_state=");
+            if (desiredState.isNull()) {
+              Serial.println("null");
+            } else {
+              Serial.println();
+            }
 
-            // Acknowledge receipt
+            // Wait 3 seconds before acknowledging
+            Serial.println("Waiting 3 seconds...");
+            delay(3000);
+
+            // Acknowledge the command (API only, no IR operation)
             acknowledgeCommand(cmdId, "accepted");
 
-            // Execute the command (handles power on/off, temperature set, increase/decrease)
-            executeCommand(desiredState);
-
-            // Report transmission result
-            reportTransmissionResult(cmdId, "transmitted");
-
-            // Report updated state
+            // Report updated state after acknowledgement
             reportState();
           }
         }
@@ -959,10 +1004,10 @@ void pollAndExecuteCommands() {
         Serial.println(error.c_str());
       }
     } else {
-      Serial.printf("Poll commands failed: %s\n", https.errorToString(httpCode).c_str());
+      Serial.printf("Poll commands failed: %s\n", http.errorToString(httpCode).c_str());
     }
 
-    https.end();
+    http.end();
   } else {
     Serial.println("Failed to connect for command polling.");
   }
@@ -970,12 +1015,10 @@ void pollAndExecuteCommands() {
 
 // Acknowledge a command receipt
 void acknowledgeCommand(const char* cmdId, const char* result) {
-  WiFiClientSecure client;
-  client.setInsecure();
-
   String endpoint = String(baseUrl) + "/device/commands/" + String(cmdId) + "/ack";
-  if (https.begin(client, endpoint)) {
-    addSerialHeader(https);
+  HTTPClient http;
+  if (httpBegin(http, endpoint)) {
+    addSerialHeader(http);
 
     String eventId = makeEventId("ack");
     String payload = "{";
@@ -985,25 +1028,23 @@ void acknowledgeCommand(const char* cmdId, const char* result) {
     payload += "\"result\": \"" + String(result) + "\"";
     payload += "}";
 
-    int httpCode = https.POST(payload);
+    int httpCode = http.POST(payload);
     if (httpCode > 0) {
       Serial.printf("ACK HTTP %d for %s\n", httpCode, cmdId);
     } else {
-      Serial.printf("ACK failed: %s\n", https.errorToString(httpCode).c_str());
+      Serial.printf("ACK failed: %s\n", http.errorToString(httpCode).c_str());
     }
 
-    https.end();
+    http.end();
   }
 }
 
 // Report IR transmission result
 void reportTransmissionResult(const char* cmdId, const char* result) {
-  WiFiClientSecure client;
-  client.setInsecure();
-
   String endpoint = String(baseUrl) + "/device/commands/" + String(cmdId) + "/transmission-result";
-  if (https.begin(client, endpoint)) {
-    addSerialHeader(https);
+  HTTPClient http;
+  if (httpBegin(http, endpoint)) {
+    addSerialHeader(http);
 
     String eventId = makeEventId("tx");
     String payload = "{";
@@ -1013,24 +1054,19 @@ void reportTransmissionResult(const char* cmdId, const char* result) {
     payload += "\"result\": \"" + String(result) + "\"";
     payload += "}";
 
-    int httpCode = https.POST(payload);
+    int httpCode = http.POST(payload);
     if (httpCode > 0) {
       Serial.printf("TX-result HTTP %d for %s\n", httpCode, cmdId);
     } else {
-      Serial.printf("TX-result failed: %s\n", https.errorToString(httpCode).c_str());
+      Serial.printf("TX-result failed: %s\n", http.errorToString(httpCode).c_str());
     }
 
-    https.end();
+    http.end();
   }
 }
 
-// Execute a command on the simulated AC (IR send + update local state)
-// Supported commands from backend:
-//   - power: "on"   -> turn AC ON
-//   - power: "off"  -> turn AC OFF
-//   - temperature_setpoint_c: N  -> set temperature to N (absolute)
-//     (This also covers "increase"/"decrease": the backend sends the new
-//      absolute target temperature, and the device applies it.)
+// Execute a command — API only, no IR operation
+// Logs the desired state received from backend
 void executeCommand(JsonObject desiredState) {
   if (desiredState.isNull()) {
     Serial.println("No desired_state in command.");
@@ -1041,28 +1077,16 @@ void executeCommand(JsonObject desiredState) {
   int temp = desiredState["temperature_setpoint_c"] | -1;
 
   if (power != nullptr) {
-    if (strcmp(power, "on") == 0) {
-      ACStatus = true;
-      ac.on();
-      Serial.println("AC Power: ON");
-    } else if (strcmp(power, "off") == 0) {
-      ACStatus = false;
-      ac.off();
-      Serial.println("AC Power: OFF");
-    }
+    Serial.print("AC Power: ");
+    Serial.println(power);
   }
 
   if (temp != -1) {
-    ACTemp = temp;
-    ac.setTemp(temp);
     Serial.print("AC Setpoint: ");
-    Serial.println(ACTemp);
+    Serial.println(temp);
   }
 
-#if SEND_GREE
-  Serial.println("Sending IR command to A/C...");
-  ac.send();
-#endif
+  Serial.println("IR operation skipped (API-only mode).");
 }
 
 // ------------------------------------------------------------

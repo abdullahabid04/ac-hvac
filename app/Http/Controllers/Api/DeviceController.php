@@ -3,8 +3,11 @@
 namespace App\Http\Controllers\Api;
 
 use App\Enums\CommandStatus;
+use App\Enums\PowerState;
+use App\Enums\StateQuality;
 use App\Models\AcCommand;
 use App\Models\Device;
+use App\Services\AcStateProjectionService;
 use App\Services\DeviceEventIngestionService;
 use App\Services\RemotePolicyResolver;
 use Illuminate\Http\Request;
@@ -15,6 +18,7 @@ class DeviceController extends ApiController
     public function __construct(
         private DeviceEventIngestionService $ingestion,
         private RemotePolicyResolver $policies,
+        private AcStateProjectionService $projection,
     ) {}
 
     public function heartbeat(Request $request)
@@ -42,6 +46,75 @@ class DeviceController extends ApiController
                 'effective' => $device->fresh()->effective_remote_policy,
                 'version' => $device->fresh()->policy_version,
             ],
+        ]);
+    }
+
+    public function unifiedHeartbeat(Request $request)
+    {
+        $device = $this->device($request);
+        $ac = $device->acUnit();
+
+        if (! $ac) {
+            return $this->error('NO_ASSIGNMENT', 'This device is not currently assigned to an air conditioner.', [], 409);
+        }
+
+        // Validate current state reported by the device
+        $data = $request->validate([
+            's' => ['required', 'boolean'],
+            't' => ['required', 'integer', 'between:5,40'],
+        ]);
+
+        $currentPower = filter_var($data['s'], FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE)
+            ? 'on'
+            : 'off';
+        $currentSetpoint = (int) $data['t'];
+
+        // Process and store the reported state via the existing projection service
+        $occurredAt = now();
+        $this->projection->applyConfiguration(
+            $ac,
+            [
+                'power' => $currentPower,
+                'temperature_setpoint_c' => $currentSetpoint,
+            ],
+            'device_report',
+            StateQuality::Reported,
+            $occurredAt,
+            now(),
+        );
+
+        // Determine next desired state from pending commands
+        $pendingCommand = AcCommand::where('organization_id', $device->organization_id)
+            ->where('device_id', $device->id)
+            ->whereIn('status', [CommandStatus::Published->value, CommandStatus::Received->value])
+            ->where('expires_at', '>', now())
+            ->orderBy('issued_at')
+            ->first();
+
+        $desiredPower = null;
+        $desiredSetpoint = null;
+
+        if ($pendingCommand && is_array($pendingCommand->desired_state)) {
+            $ds = $pendingCommand->desired_state;
+            if (isset($ds['power'])) {
+                $desiredPower = strtolower((string) $ds['power']) === 'on';
+            }
+            if (isset($ds['temperature_setpoint_c']) && is_numeric($ds['temperature_setpoint_c'])) {
+                $desiredSetpoint = (int) $ds['temperature_setpoint_c'];
+            }
+        }
+
+        // Fall back to current snapshot state when no pending command exists
+        $snapshot = $ac->stateSnapshot;
+        $desiredPower = $desiredPower ?? ($snapshot ? $snapshot->power_state->value === 'known_on' : false);
+        $desiredSetpoint = $desiredSetpoint ?? ($snapshot ? $snapshot->temperature_setpoint_c : $currentSetpoint);
+
+        $interval = (int) config('hvac.heartbeat_interval_seconds', 5);
+
+        return $this->ok([
+            's' => $desiredPower,
+            't' => $desiredSetpoint,
+            'i' => $interval,
         ]);
     }
 
