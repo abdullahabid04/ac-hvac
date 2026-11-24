@@ -61,7 +61,7 @@ class DeviceController extends ApiController
         // Validate current state reported by the device
         $data = $request->validate([
             's' => ['required', 'boolean'],
-            't' => ['required', 'integer', 'between:5,40'],
+            't' => ['required', 'integer'],
         ]);
 
         $currentPower = filter_var($data['s'], FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE)
