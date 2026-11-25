@@ -16,18 +16,16 @@ class DeviceApiTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_device_can_authenticate_with_bearer_token(): void
+    public function test_device_can_authenticate_with_serial_number(): void
     {
         $organization = Organization::factory()->create();
-        $token = 'acv1_' . Str::random(60);
         $device = Device::factory()->create([
             'organization_id' => $organization->id,
             'status' => 'active',
-            'api_token_hash' => hash('sha256', $token),
-            'token_prefix' => substr($token, 0, 12),
+            'serial_number' => 'HVAC-ESP32-2026-000001',
         ]);
 
-        $response = $this->withHeader('Authorization', 'Bearer ' . $token)
+        $response = $this->withHeader('X-Device-Serial', 'HVAC-ESP32-2026-000001')
             ->post('/api/v1/device/heartbeat', [
                 'schema_version' => 1,
                 'event_id' => 'hb-' . Str::uuid(),
@@ -37,16 +35,16 @@ class DeviceApiTest extends TestCase
         $response->assertStatus(200);
     }
 
-    public function test_device_rejects_invalid_token(): void
+    public function test_device_rejects_invalid_serial(): void
     {
-        $response = $this->withHeader('Authorization', 'Bearer invalid-token')
+        $response = $this->withHeader('X-Device-Serial', 'INVALID-SERIAL')
             ->post('/api/v1/device/heartbeat');
 
         $response->assertStatus(401);
         $response->assertJsonStructure(['error' => ['code', 'message']]);
     }
 
-    public function test_device_rejects_missing_token(): void
+    public function test_device_rejects_missing_serial(): void
     {
         $response = $this->post('/api/v1/device/heartbeat');
 
@@ -56,14 +54,12 @@ class DeviceApiTest extends TestCase
     public function test_device_can_report_state(): void
     {
         $organization = Organization::factory()->create();
-        $token = 'acv1_' . Str::random(60);
         $space = Space::factory()->create(['organization_id' => $organization->id]);
         $ac = AcUnit::factory()->create(['organization_id' => $organization->id, 'space_id' => $space->id]);
         $device = Device::factory()->create([
             'organization_id' => $organization->id,
             'status' => 'active',
-            'api_token_hash' => hash('sha256', $token),
-            'token_prefix' => substr($token, 0, 12),
+            'serial_number' => 'HVAC-ESP32-2026-000001',
         ]);
         DeviceAssignment::factory()->create([
             'organization_id' => $organization->id,
@@ -72,7 +68,7 @@ class DeviceApiTest extends TestCase
             'is_current' => true,
         ]);
 
-        $response = $this->withHeader('Authorization', 'Bearer ' . $token)
+        $response = $this->withHeader('X-Device-Serial', 'HVAC-ESP32-2026-000001')
             ->post('/api/v1/device/state', [
                 'event_id' => 'st-' . Str::uuid(),
                 'occurred_at' => now()->toIso8601String(),
@@ -89,14 +85,12 @@ class DeviceApiTest extends TestCase
     public function test_event_ingestion_is_idempotent_by_event_uid(): void
     {
         $organization = Organization::factory()->create();
-        $token = 'acv1_' . Str::random(60);
         $space = Space::factory()->create(['organization_id' => $organization->id]);
         $ac = AcUnit::factory()->create(['organization_id' => $organization->id, 'space_id' => $space->id]);
         $device = Device::factory()->create([
             'organization_id' => $organization->id,
             'status' => 'active',
-            'api_token_hash' => hash('sha256', $token),
-            'token_prefix' => substr($token, 0, 12),
+            'serial_number' => 'HVAC-ESP32-2026-000001',
         ]);
         DeviceAssignment::factory()->create([
             'organization_id' => $organization->id,
@@ -114,9 +108,9 @@ class DeviceApiTest extends TestCase
             'payload' => [],
         ];
 
-        $this->withHeader('Authorization', 'Bearer ' . $token)
+        $this->withHeader('X-Device-Serial', 'HVAC-ESP32-2026-000001')
             ->post('/api/v1/device/events', $payload);
-        $this->withHeader('Authorization', 'Bearer ' . $token)
+        $this->withHeader('X-Device-Serial', 'HVAC-ESP32-2026-000001')
             ->post('/api/v1/device/events', $payload);
 
         $this->assertCount(1, $device->events()->where('event_uid', $eventUid)->get());

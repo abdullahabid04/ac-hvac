@@ -193,34 +193,26 @@ document.addEventListener('alpine:init', () => {
         reportedSetpoint: null,
         reportedAt: null,
         reportedQuality: null,
-        requestedPower: null,
-        requestedSetpoint: null,
-        pending: false,
-        phase: 'idle',
-        phaseLabel: '',
-        command: null,
-        message: '',
+        desiredPower: null,
+        desiredSetpoint: null,
+        sending: false,
         error: '',
-        pollTimer: null,
-        pollAttempts: 0,
+        sendTimer: null,
 
         init() {
             this.reportedPower = this.config.power || 'unknown';
             this.reportedSetpoint = this.config.setpoint;
             this.reportedAt = this.config.observedAt || null;
             this.reportedQuality = this.config.quality || 'unknown';
-            this.requestedPower = this.reportedPower === 'known_on' ? 'on' : (this.reportedPower === 'known_off' ? 'off' : null);
-            this.requestedSetpoint = this.reportedSetpoint;
+            this.desiredPower = this.config.desired_power ?? null;
+            this.desiredSetpoint = this.config.desired_setpoint ?? null;
         },
 
         get isOn() {
-            return this.requestedPower === 'on';
+            return this.desiredPower === 'on';
         },
 
         get displayPower() {
-            if (this.pending && this.requestedPower) {
-                return this.requestedPower.toUpperCase();
-            }
             if (! this.reportedPower || this.reportedPower === 'unknown') {
                 return 'Unknown';
             }
@@ -228,6 +220,13 @@ document.addEventListener('alpine:init', () => {
                 return 'Stale';
             }
             return this.reportedPower === 'known_on' ? 'ON' : 'OFF';
+        },
+
+        get displayDesiredPower() {
+            if (! this.desiredPower) {
+                return '—';
+            }
+            return this.desiredPower === 'on' ? 'ON' : 'OFF';
         },
 
         get dialPercent() {
@@ -238,34 +237,38 @@ document.addEventListener('alpine:init', () => {
             return Math.max(4, Math.min(100, ((this.reportedSetpoint - this.config.min) / range) * 100));
         },
 
+        get desiredDialPercent() {
+            if (this.desiredSetpoint === null || this.config.min === null || this.config.max === null) {
+                return 0;
+            }
+            const range = Math.max(1, this.config.max - this.config.min);
+            return Math.max(4, Math.min(100, ((this.desiredSetpoint - this.config.min) / range) * 100));
+        },
+
         get canDecrease() {
-            return this.config.canControl && this.reportedSetpoint !== null && this.reportedSetpoint > this.config.min;
+            return this.config.canControl && this.desiredSetpoint !== null && this.desiredSetpoint > this.config.min;
         },
 
         get canIncrease() {
-            return this.config.canControl && this.reportedSetpoint !== null && this.reportedSetpoint < this.config.max;
+            return this.config.canControl && this.desiredSetpoint !== null && this.desiredSetpoint < this.config.max;
         },
 
         setPower(position) {
-            if (! this.config.canControl || this.pending) {
+            if (! this.config.canControl || this.sending) {
                 return;
             }
 
-            if (this.requestedPower === position && this.phase !== 'idle') {
-                return;
-            }
-
-            this.requestedPower = position;
+            this.desiredPower = position;
             this.send({ power: position }, position === 'on' ? 'Requested ON' : 'Requested OFF');
         },
 
         changeSetpoint(delta) {
-            if (! this.config.canControl || this.pending) {
+            if (! this.config.canControl || this.sending) {
                 return;
             }
 
             const step = Number(this.config.step || 1);
-            const base = this.requestedSetpoint ?? this.reportedSetpoint;
+            const base = this.desiredSetpoint ?? this.reportedSetpoint;
 
             if (base === null) {
                 this.error = 'No last-reported setpoint is available. Send a full state command from the device first.';
@@ -278,17 +281,14 @@ document.addEventListener('alpine:init', () => {
                 return;
             }
 
-            this.requestedSetpoint = next;
+            this.desiredSetpoint = next;
             this.send({ temperature_setpoint_c: next }, `Requested setpoint ${next}°C`);
         },
 
         async send(desiredState, label) {
-            this.pending = true;
-            this.phase = 'sending';
-            this.phaseLabel = 'Sending command…';
+            this.sending = true;
             this.message = label;
             this.error = '';
-            this.command = null;
 
             try {
                 const response = await fetch(this.config.commandUrl, {
@@ -309,81 +309,24 @@ document.addEventListener('alpine:init', () => {
                     throw new Error(Array.isArray(firstError) ? firstError[0] : (payload?.error?.message || 'The command could not be queued.'));
                 }
 
-                this.command = payload.data;
-                this.phase = 'queued';
-                this.phaseLabel = payload.data.status_label || 'Queued for device';
-                this.pollAttempts = 0;
-                this.startPolling();
+                // Optimistically update desired state immediately.
+                // The backend persists desired state; the device will pick it up
+                // on its next heartbeat. We do not wait for device acknowledgement.
+                if (desiredState.power !== undefined) {
+                    this.desiredPower = desiredState.power;
+                }
+                if (desiredState.temperature_setpoint_c !== undefined) {
+                    this.desiredSetpoint = desiredState.temperature_setpoint_c;
+                }
+
+                this.message = label;
+                this.$store.toasts.push(label, 'success');
             } catch (error) {
                 this.error = error.message || 'The command could not be sent.';
-                this.phase = 'error';
-                this.phaseLabel = 'Command failed';
-                this.pending = false;
-                this.requestedPower = this.reportedPower === 'known_on' ? 'on' : (this.reportedPower === 'known_off' ? 'off' : null);
-                this.requestedSetpoint = this.reportedSetpoint;
+                this.$store.toasts.push(this.error, 'error');
+            } finally {
+                this.sending = false;
             }
-        },
-
-        startPolling() {
-            clearTimeout(this.pollTimer);
-            const url = (this.config.commandPollUrl || '').replace('__COMMAND__', this.command.id);
-
-            const poll = async () => {
-                this.pollAttempts += 1;
-
-                try {
-                    const response = await fetch(url, { headers: { 'Accept': 'application/json' } });
-                    const payload = await response.json();
-
-                    if (response.ok) {
-                        this.applyCommand(payload.data);
-                    }
-                } catch (error) {
-                    // Transient polls do not change the queue state; keep trying until expiry.
-                }
-
-                if (this.command && this.command.is_pending && this.pollAttempts < 60) {
-                    this.pollTimer = setTimeout(poll, 1500);
-                } else if (this.command && this.command.is_pending) {
-                    this.phase = 'pending';
-                    this.phaseLabel = 'Awaiting device — status will expire automatically';
-                    this.pending = false;
-                }
-            };
-
-            this.pollTimer = setTimeout(poll, 900);
-        },
-
-        applyCommand(command) {
-            this.command = command;
-            this.phase = command.status;
-            this.phaseLabel = command.status_label;
-
-            if (command.last_reported) {
-                this.reportedPower = command.last_reported.power_state;
-                this.reportedSetpoint = command.last_reported.temperature_setpoint_c;
-                this.reportedQuality = command.last_reported.quality;
-                this.reportedAt = command.last_reported.observed_at;
-            }
-
-            if (command.is_terminal) {
-                this.pending = false;
-                clearTimeout(this.pollTimer);
-                this.requestedPower = this.reportedPower === 'known_on' ? 'on' : (this.reportedPower === 'known_off' ? 'off' : null);
-                this.requestedSetpoint = this.reportedSetpoint;
-
-                if (command.status === 'failed' || command.status === 'expired') {
-                    this.error = command.failure_message || 'The device did not complete the command.';
-                    this.$store.toasts.push(this.error, 'error');
-                } else if (command.status === 'completed') {
-                    this.message = 'IR transmission completed. The AC state is last-known/inferred until the device reports it again.';
-                    this.$store.toasts.push('Command transmitted. Physical AC state is not confirmed.', 'success');
-                }
-            }
-        },
-
-        close() {
-            clearTimeout(this.pollTimer);
         },
     }));
 

@@ -243,6 +243,8 @@ class AcController extends Controller
                 'commandPollUrl' => route('commands.show', ['command' => '__COMMAND__']),
                 'power' => $ac->stateSnapshot?->power_state?->value ?? 'unknown',
                 'setpoint' => $ac->stateSnapshot?->temperature_setpoint_c,
+                'desired_power' => $ac->desired_power_state,
+                'desired_setpoint' => $ac->desired_temperature_setpoint_c,
                 'min' => $profile?->temperature_min_c,
                 'max' => $profile?->temperature_max_c,
                 'step' => (float) ($profile?->temperature_step_c ?? 1),
@@ -257,6 +259,20 @@ class AcController extends Controller
         $this->authorize('control', $ac);
         $organization = $request->attributes->get('organization');
         $command = $this->commands->create($organization, $ac, $request->validated(), $request->user());
+
+        // Persist desired state directly on ac_units so the heartbeat API
+        // can serve it without depending on command acknowledgement.
+        $desiredState = $command->desired_state ?? [];
+        $updateData = [];
+        if (isset($desiredState['power'])) {
+            $updateData['desired_power_state'] = strtolower((string) $desiredState['power']);
+        }
+        if (isset($desiredState['temperature_setpoint_c']) && is_numeric($desiredState['temperature_setpoint_c'])) {
+            $updateData['desired_temperature_setpoint_c'] = (int) $desiredState['temperature_setpoint_c'];
+        }
+        if (! empty($updateData)) {
+            $ac->update($updateData);
+        }
 
         return response()->json([
             'data' => $this->commandPayload($command),

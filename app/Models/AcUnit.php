@@ -23,6 +23,8 @@ class AcUnit extends Model
         'name',
         'asset_code',
         'serial_number',
+        'desired_power_state',
+        'desired_temperature_setpoint_c',
         'installation_date',
         'status',
         'notes',
@@ -156,5 +158,57 @@ class AcUnit extends Model
     public function supportsProfileControl(): bool
     {
         return $this->irProfileVersion?->isValidated() === true;
+    }
+
+    /**
+     * Get the desired power state set by the dashboard.
+     * Returns 'on', 'off', or null if not set.
+     */
+    public function desiredPowerState(): ?string
+    {
+        return $this->desired_power_state;
+    }
+
+    /**
+     * Get the desired temperature setpoint set by the dashboard.
+     */
+    public function desiredTemperatureSetpointC(): ?int
+    {
+        return $this->desired_temperature_setpoint_c;
+    }
+
+    /**
+     * Get the latest desired power state as a boolean, or null.
+     */
+    public function desiredPowerStateBool(): ?bool
+    {
+        if ($this->desired_power_state === null) {
+            return null;
+        }
+        return strtolower((string) $this->desired_power_state) === 'on';
+    }
+
+    /**
+     * Check if the AC has a pending desired state change that differs from current.
+     */
+    public function hasPendingDesiredStateChange(): bool
+    {
+        if ($this->desired_power_state === null && $this->desired_temperature_setpoint_c === null) {
+            return false;
+        }
+
+        $snapshot = $this->stateSnapshot;
+        $currentPower = $snapshot?->power_state?->value;
+        $currentSetpoint = $snapshot?->temperature_setpoint_c;
+
+        if ($this->desired_power_state !== null && strtolower((string) $this->desired_power_state) !== $currentPower) {
+            return true;
+        }
+
+        if ($this->desired_temperature_setpoint_c !== null && $this->desired_temperature_setpoint_c !== $currentSetpoint) {
+            return true;
+        }
+
+        return false;
     }
 }

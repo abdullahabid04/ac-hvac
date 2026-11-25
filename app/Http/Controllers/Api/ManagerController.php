@@ -480,6 +480,10 @@ class ManagerController extends ApiController
                 'observed_at' => $snapshot->observed_at?->toIso8601String(),
                 'stale' => $snapshot->isStale(),
             ] : ['power_state' => 'unknown', 'power_state_label' => 'Unknown', 'temperature_setpoint_c' => null, 'quality' => 'unknown', 'stale' => true],
+            'desired_state' => [
+                'power_state' => $ac->desiredPowerState(),
+                'temperature_setpoint_c' => $ac->desiredTemperatureSetpointC(),
+            ],
             'device' => $device ? [
                 'id' => $device->id,
                 'name' => $device->name,

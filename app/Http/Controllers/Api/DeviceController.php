@@ -69,7 +69,8 @@ class DeviceController extends ApiController
             : 'off';
         $currentSetpoint = (int) $data['t'];
 
-        // Process and store the reported state via the existing projection service
+        // Process and store the reported state via the existing projection service.
+        // This updates CURRENT state only — desired values are untouched.
         $occurredAt = now();
         $this->projection->applyConfiguration(
             $ac,
@@ -83,31 +84,11 @@ class DeviceController extends ApiController
             now(),
         );
 
-        // Determine next desired state from pending commands
-        $pendingCommand = AcCommand::where('organization_id', $device->organization_id)
-            ->where('device_id', $device->id)
-            ->whereIn('status', [CommandStatus::Published->value, CommandStatus::Received->value])
-            ->where('expires_at', '>', now())
-            ->orderBy('issued_at')
-            ->first();
-
-        $desiredPower = null;
-        $desiredSetpoint = null;
-
-        if ($pendingCommand && is_array($pendingCommand->desired_state)) {
-            $ds = $pendingCommand->desired_state;
-            if (isset($ds['power'])) {
-                $desiredPower = strtolower((string) $ds['power']) === 'on';
-            }
-            if (isset($ds['temperature_setpoint_c']) && is_numeric($ds['temperature_setpoint_c'])) {
-                $desiredSetpoint = (int) $ds['temperature_setpoint_c'];
-            }
-        }
-
-        // Fall back to current snapshot state when no pending command exists
-        $snapshot = $ac->stateSnapshot;
-        $desiredPower = $desiredPower ?? ($snapshot ? $snapshot->power_state->value === 'known_on' : false);
-        $desiredSetpoint = $desiredSetpoint ?? ($snapshot ? $snapshot->temperature_setpoint_c : $currentSetpoint);
+        // Return the latest desired state from ac_units (dashboard-controlled),
+        // not from pending commands. Dashboard writes desired state directly;
+        // device heartbeat writes current state. They never overwrite each other.
+        $desiredPower = $ac->desiredPowerStateBool();
+        $desiredSetpoint = $ac->desiredTemperatureSetpointC();
 
         $interval = (int) config('hvac.heartbeat_interval_seconds', 5);
 
