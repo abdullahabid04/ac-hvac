@@ -12,7 +12,7 @@ return [
     'device_offline_after_minutes' => (int) env('HVAC_DEVICE_OFFLINE_AFTER_MINUTES', 5),
     'state_stale_after_minutes' => (int) env('HVAC_STATE_STALE_AFTER_MINUTES', 120),
     'command_ttl_seconds' => (int) env('HVAC_COMMAND_TTL_SECONDS', 300),
-    'heartbeat_interval_seconds' => (int) env('HVAC_HEARTBEAT_INTERVAL_SECONDS', 5),
+    'heartbeat_interval_seconds' => 3,
     'default_remote_policy' => env('HVAC_DEFAULT_REMOTE_POLICY', 'disabled'),
     'temperature_default_step' => 1,
 
