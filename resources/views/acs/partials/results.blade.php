@@ -80,21 +80,23 @@
                             $deviceStatusClass = $device ? 'ac-list-chip-small-online' : 'ac-list-chip-small-unknown';
                             $deviceStatusText = $device ? $device->connectivity()->label() : 'Unknown';
                         @endphp
-                        <article x-data="acControl" x-init="config = {
-                    acId: {{ $ac->id }},
-                    commandUrl: '{{ $cmdUrl }}',
-                    commandPollUrl: '{{ $pollUrl }}',
-                    power: '{{ $powerVal }}',
-                    setpoint: {{ $setpointVal }},
-                    min: {{ $minVal }},
-                    max: {{ $maxVal }},
-                    step: {{ $stepVal }},
-                    canControl: {{ $canControl ? 'true' : 'false' }},
-                    deviceOnline: {{ $ac->connectivity() === \App\Enums\ConnectivityStatus::Online ? 'true' : 'false' }},
-                    observedAt: '{{ $obsAt }}',
-                    quality: '{{ $qualityVal }}'
-                }; init()"
-                    class="list-ac-card border border-line/85 rounded-xl bg-white p-3 flex flex-col md:flex-row items-center justify-between gap-3 transition hover:border-blue-300 hover:shadow-[0_4px_12px_rgba(8,117,201,0.15)]">
+            <article x-data="acControl" x-init="config = {
+                acId: {{ $ac->id }},
+                commandUrl: '{{ $cmdUrl }}',
+                commandPollUrl: '{{ $pollUrl }}',
+                power: '{{ $powerVal }}',
+                setpoint: {{ $setpointVal }},
+                desired_power: '{{ $ac->desired_power_state ?? 'null' }}',
+                desired_setpoint: {{ $ac->desired_temperature_setpoint_c ?? 'null' }},
+                min: {{ $minVal }},
+                max: {{ $maxVal }},
+                step: {{ $stepVal }},
+                canControl: {{ $canControl ? 'true' : 'false' }},
+                deviceOnline: {{ $ac->connectivity() === \App\Enums\ConnectivityStatus::Online ? 'true' : 'false' }},
+                observedAt: '{{ $obsAt }}',
+                quality: '{{ $qualityVal }}'
+            }; init()"
+                class="list-ac-card border border-line/85 rounded-xl bg-white p-3 flex flex-col md:flex-row items-center justify-between gap-3 transition hover:border-blue-300 hover:shadow-[0_4px_12px_rgba(8,117,201,0.15)]">
                     <div class="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 min-w-[110px]">
                         <a href="{{ route('acs.show', $ac) }}" class="text-[12px] font-bold text-ink truncate hover:text-blue-700">{{ $ac->asset_code }}</a>
                         <span class="block text-[9px] text-muted truncate">{{ $ac->name }}</span>
@@ -113,8 +115,8 @@
                         <button type="button"
                             class="rocker rocker-sm {{ $canControl && $ac->connectivity() === \App\Enums\ConnectivityStatus::Online ? '' : 'opacity-70' }}"
                             :data-on="isOn ? 'true' : 'false'"
-                            :data-pending="pending ? 'true' : 'false'"
-                            :disabled="! config.canControl || pending"
+                            :data-sending="sending ? 'true' : 'false'"
+                            :disabled="! config.canControl || sending"
                             aria-label="AC power rocker. ON is at the top, OFF is at the bottom."
                             @click="setPower(isOn ? 'off' : 'on')">
                             <span class="rocker-thumb" :class="isOn ? 'rocker-thumb-on' : 'rocker-thumb-off'"></span>
@@ -130,8 +132,10 @@
                         <div class="flex items-center gap-1 mt-1 sm:mt-0">
                             <button type="button"
                                 class="btn btn-secondary btn-icon shrink-0 h-6 w-6"
-                                :disabled="! canDecrease || pending"
-                                :class="(! canDecrease || pending) ? 'opacity-40' : ''"
+                            <button type="button"
+                                class="btn btn-secondary btn-icon shrink-0 h-6 w-6"
+                                :disabled="! canDecrease || sending"
+                                :class="(! canDecrease || sending) ? 'opacity-40' : ''"
                                 @click="changeSetpoint(-1)"
                                 aria-label="Decrease setpoint">
                                 <span class="text-[13px] font-light leading-none">−</span>
@@ -139,8 +143,8 @@
                             <span class="font-semibold text-ink">{{ $setpointVal !== null ? $setpointVal : '—' }}</span><span class="text-[10px] text-muted">°C</span>
                             <button type="button"
                                 class="btn btn-secondary btn-icon shrink-0 h-6 w-6"
-                                :disabled="! canIncrease || pending"
-                                :class="(! canIncrease || pending) ? 'opacity-40' : ''"
+                                :disabled="! canIncrease || sending"
+                                :class="(! canIncrease || sending) ? 'opacity-40' : ''"
                                 @click="changeSetpoint(1)"
                                 aria-label="Increase setpoint">
                                 <span class="text-[13px] font-light leading-none">+</span>
@@ -192,6 +196,8 @@
                 commandPollUrl: '{{ $pollUrl }}',
                 power: '{{ $powerVal }}',
                 setpoint: {{ $setpointVal }},
+                desired_power: '{{ $ac->desired_power_state ?? 'null' }}',
+                desired_setpoint: {{ $ac->desired_temperature_setpoint_c ?? 'null' }},
                 min: {{ $minVal }},
                 max: {{ $maxVal }},
                 step: {{ $stepVal }},
@@ -231,8 +237,8 @@
                             <button type="button"
                                 class="rocker rocker-sm {{ $canControl && $ac->connectivity() === \App\Enums\ConnectivityStatus::Online ? '' : 'opacity-70' }}"
                                 :data-on="isOn ? 'true' : 'false'"
-                                :data-pending="pending ? 'true' : 'false'"
-                                :disabled="! config.canControl || pending"
+                                :data-sending="sending ? 'true' : 'false'"
+                                :disabled="! config.canControl || sending"
                                 aria-label="AC power rocker. ON is at the top, OFF is at the bottom."
                                 @click="setPower(isOn ? 'off' : 'on')">
                                 <span class="rocker-thumb" :class="isOn ? 'rocker-thumb-on' : 'rocker-thumb-off'"></span>
@@ -259,16 +265,16 @@
                             <div class="flex items-center gap-1 mt-1">
                                 <button type="button"
                                     class="btn btn-secondary btn-icon shrink-0 h-6 w-6"
-                                    :disabled="! canDecrease || pending"
-                                    :class="(! canDecrease || pending) ? 'opacity-40' : ''"
+                                    :disabled="! canDecrease || sending"
+                                    :class="(! canDecrease || sending) ? 'opacity-40' : ''"
                                     @click="changeSetpoint(-1)"
                                     aria-label="Decrease setpoint">
                                     <span class="text-[14px] font-light leading-none">−</span>
                                 </button>
                                 <button type="button"
                                     class="btn btn-secondary btn-icon shrink-0 h-6 w-6"
-                                    :disabled="! canIncrease || pending"
-                                    :class="(! canIncrease || pending) ? 'opacity-40' : ''"
+                                    :disabled="! canIncrease || sending"
+                                    :class="(! canIncrease || sending) ? 'opacity-40' : ''"
                                     @click="changeSetpoint(1)"
                                     aria-label="Increase setpoint">
                                     <span class="text-[14px] font-light leading-none">+</span>
